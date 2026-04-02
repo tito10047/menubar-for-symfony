@@ -10,7 +10,10 @@ export class ServerStopCommand implements SymfonyCommandInterface<boolean> {
 
     async execute(args: string[] = []): Promise<boolean> {
         const commandArgs = ['server:stop', ...args];
-        await this.processRunner.run(commandArgs);
-        return true;
+        const output = await this.processRunner.run(commandArgs);
+        const lowerOutput = output.toLowerCase();
+        
+        return lowerOutput.includes('stopped') || 
+               lowerOutput.includes('no web server is running');
     }
 }

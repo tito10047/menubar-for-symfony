@@ -31,7 +31,9 @@ describe('ProxyStopCommand Integration', () => {
         const statusCmd = new ProxyStatusCommand(runner);
 
         const result = await stopCmd.execute();
+        
         expect(result).toBe(true);
+
         const status = await statusCmd.execute();
         expect(status.isRunning).toBe(false);
     }, 20000);

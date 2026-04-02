@@ -16,12 +16,24 @@ describe('ServerStopCommand', () => {
         expect(command.getName()).toBe('server:stop');
     });
 
-    it('should execute server:stop with correct arguments', async () => {
-        mockProcessRunner.run.mockResolvedValue('Server stopped');
+    it('should return true if server was stopped', async () => {
+        mockProcessRunner.run.mockResolvedValue('The web server has been stopped');
 
         const result = await command.execute(['--dir', '/path/to/project']);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['server:stop', '--dir', '/path/to/project']);
         expect(result).toBe(true);
+    });
+
+    it('should return true if no server is running', async () => {
+        mockProcessRunner.run.mockResolvedValue('No web server is running for this project');
+        const result = await command.execute();
+        expect(result).toBe(true);
+    });
+
+    it('should return false if output is unknown', async () => {
+        mockProcessRunner.run.mockResolvedValue('Some error happened');
+        const result = await command.execute();
+        expect(result).toBe(false);
     });
 });

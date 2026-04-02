@@ -10,7 +10,10 @@ export class ProxyStartCommand implements SymfonyCommandInterface<boolean> {
 
     async execute(args: string[] = []): Promise<boolean> {
         const commandArgs = ['proxy:start', '--no-ansi', ...args];
-        await this.processRunner.run(commandArgs);
-        return true;
+        const output = await this.processRunner.run(commandArgs);
+        const lowerOutput = output.toLowerCase();
+        
+        return lowerOutput.includes('listening') || 
+               lowerOutput.includes('already running');
     }
 }

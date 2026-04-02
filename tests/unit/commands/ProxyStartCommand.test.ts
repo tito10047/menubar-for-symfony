@@ -16,12 +16,21 @@ describe('ProxyStartCommand', () => {
         expect(command.getName()).toBe('proxy:start');
     });
 
-    it('should execute proxy:start', async () => {
-        mockProcessRunner.run.mockResolvedValue('Proxy started');
-
+    it('should return true if proxy is already running', async () => {
+        mockProcessRunner.run.mockResolvedValue('The proxy server is already running at port 7080');
         const result = await command.execute();
-
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:start', '--no-ansi']);
         expect(result).toBe(true);
+    });
+
+    it('should return true if proxy just started listening', async () => {
+        mockProcessRunner.run.mockResolvedValue('The local proxy server is now listening on http://127.0.0.1:7080');
+        const result = await command.execute();
+        expect(result).toBe(true);
+    });
+
+    it('should return false if output is unknown', async () => {
+        mockProcessRunner.run.mockResolvedValue('Some error happened');
+        const result = await command.execute();
+        expect(result).toBe(false);
     });
 });

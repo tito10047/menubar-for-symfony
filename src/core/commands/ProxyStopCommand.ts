@@ -10,7 +10,10 @@ export class ProxyStopCommand implements SymfonyCommandInterface<boolean> {
 
     async execute(args: string[] = []): Promise<boolean> {
         const commandArgs = ['proxy:stop', '--no-ansi', ...args];
-        await this.processRunner.run(commandArgs);
-        return true;
+        const output = await this.processRunner.run(commandArgs);
+        const lowerOutput = output.toLowerCase();
+        
+        return lowerOutput.includes('stopped') || 
+               lowerOutput.includes('not running');
     }
 }
