@@ -1,0 +1,12 @@
+{
+  "name": "Symfony CLI Menubar",
+  "description": "Control and monitor your Symfony projects from the GNOME top bar.",
+  "uuid": "symfony-menubar@jozefm.github.com",
+  "shell-version": [
+    "45",
+    "46",
+    "47"
+  ],
+  "url": "https://github.com/jozefm/symfony-cli-menubar",
+  "version": 1
+}

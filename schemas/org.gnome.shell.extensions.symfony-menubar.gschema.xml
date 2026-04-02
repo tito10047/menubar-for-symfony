@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.symfony-menubar" path="/org/gnome/shell/extensions/symfony-menubar/">
+    <key name="terminal-command" type="s">
+      <default>"ptyxis -- %s"</default>
+      <summary>Terminal command</summary>
+      <description>Command used to open the project in terminal. %s will be replaced by the project path.</description>
+    </key>
+    <key name="polling-interval" type="i">
+      <default>5</default>
+      <summary>Polling interval</summary>
+      <description>Interval in seconds to check for server status.</description>
+    </key>
+    <key name="show-php-version" type="b">
+      <default>true</default>
+      <summary>Show PHP version</summary>
+      <description>Whether to show the PHP version in the menu.</description>
+    </key>
+  </schema>
+</schemalist>

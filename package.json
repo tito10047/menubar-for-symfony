@@ -1,0 +1,27 @@
+{
+  "name": "symfony-cli-menubar",
+  "version": "1.0.0",
+  "description": "GNOME Shell extension for Symfony CLI",
+  "main": "dist/extension.js",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --external:gi://*",
+    "watch": "npm run build -- --watch",
+    "test": "jest",
+    "compile-schemas": "glib-compile-schemas schemas/"
+  },
+  "devDependencies": {
+    "@girs/adw-1": "^1.0.0",
+    "@girs/gio-2.0": "^2.0.0",
+    "@girs/glib-2.0": "^2.0.0",
+    "@girs/gnome-shell": "^15.0.0",
+    "@girs/gtk-4.0": "^4.0.0",
+    "@girs/st-15": "^1.0.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "esbuild": "^0.20.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  }
+}
