@@ -21,7 +21,7 @@ describe('ProxyDomainDetachCommand', () => {
 
         const result = await command.execute(['my-site.wip']);
 
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:domain:detach', 'my-site.wip']);
-        expect(result).toBe('Domain detached');
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:domain:detach', '--no-ansi', 'my-site.wip']);
+        expect(result).toBe(true);
     });
 });

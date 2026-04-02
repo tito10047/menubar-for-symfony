@@ -15,11 +15,11 @@ describe('WhichSymfonyCommand Integration', () => {
 
         const result = await command.execute();
 
-        // result should be a non-empty string and a path to symfony
-        expect(typeof result).toBe('string');
-        if (result !== '') {
-            expect(result).toMatch(/\bsymfony\b/);
-            expect(result).toMatch(/^\//); // Should be absolute path
+        // result.path should be a non-empty string and a path to symfony
+        if (result.path !== null) {
+            expect(typeof result.path).toBe('string');
+            expect(result.path).toMatch(/\bsymfony\b/);
+            expect(result.path).toMatch(/^\//); // Should be absolute path
         } else {
             // It might be possible that symfony is not in PATH during test
             console.warn('⚠️ Symfony binary not found by which during integration test.');

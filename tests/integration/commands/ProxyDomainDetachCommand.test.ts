@@ -30,6 +30,7 @@ describe('ProxyDomainDetachCommand Integration', () => {
 
         // Detaching a non-existent domain should still "succeed" (not throw) or give an error we can handle
         // Note: Symfony CLI expects domain without the .wip suffix for detach command
-        await detachCmd.execute(['non-existent-integration-test']);
+        const result = await detachCmd.execute(['non-existent-integration-test']);
+        expect(result).toBe(true);
     }, 10000);
 });

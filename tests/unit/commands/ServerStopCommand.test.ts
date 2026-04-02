@@ -22,6 +22,6 @@ describe('ServerStopCommand', () => {
         const result = await command.execute(['--dir', '/path/to/project']);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['server:stop', '--dir', '/path/to/project']);
-        expect(result).toBe('Server stopped');
+        expect(result).toBe(true);
     });
 });

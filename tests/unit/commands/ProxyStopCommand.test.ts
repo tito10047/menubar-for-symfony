@@ -21,7 +21,7 @@ describe('ProxyStopCommand', () => {
 
         const result = await command.execute();
 
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:stop']);
-        expect(result).toBe('Proxy stopped');
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:stop', '--no-ansi']);
+        expect(result).toBe(true);
     });
 });

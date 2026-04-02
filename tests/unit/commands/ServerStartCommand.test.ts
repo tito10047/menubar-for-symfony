@@ -22,6 +22,6 @@ describe('ServerStartCommand', () => {
         const result = await command.execute(['--dir', '/path/to/project']);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['server:start', '-d', '--dir', '/path/to/project']);
-        expect(result).toBe('Server started');
+        expect(result).toBe(true);
     });
 });

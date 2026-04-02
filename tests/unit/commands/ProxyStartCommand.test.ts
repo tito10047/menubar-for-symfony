@@ -21,7 +21,7 @@ describe('ProxyStartCommand', () => {
 
         const result = await command.execute();
 
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:start']);
-        expect(result).toBe('Proxy started');
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['proxy:start', '--no-ansi']);
+        expect(result).toBe(true);
     });
 });

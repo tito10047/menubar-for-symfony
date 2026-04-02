@@ -23,7 +23,7 @@ describe('VersionCommand', () => {
         const result = await command.execute();
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['version', '--no-ansi']);
-        expect(result).toBe('5.4.21');
+        expect(result).toEqual({ version: '5.4.21' });
     });
 
     it('should handle version with v prefix', async () => {
@@ -32,7 +32,7 @@ describe('VersionCommand', () => {
 
         const result = await command.execute();
 
-        expect(result).toBe('5.4.21');
+        expect(result).toEqual({ version: '5.4.21' });
     });
 
     it('should return raw output if version not found', async () => {
@@ -41,6 +41,6 @@ describe('VersionCommand', () => {
 
         const result = await command.execute();
 
-        expect(result).toBe('Unknown format');
+        expect(result).toEqual({ version: 'Unknown format' });
     });
 });

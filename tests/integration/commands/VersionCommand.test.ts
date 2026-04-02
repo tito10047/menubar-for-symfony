@@ -27,7 +27,7 @@ describe('VersionCommand Integration', () => {
 
         const result = await command.execute();
 
-        expect(typeof result).toBe('string');
-        expect(result).toMatch(/^\d+\.\d+\.\d+/);
+        expect(typeof result.version).toBe('string');
+        expect(result.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 });

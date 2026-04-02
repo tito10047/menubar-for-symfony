@@ -30,7 +30,8 @@ describe('ProxyStartCommand Integration', () => {
         const startCmd = new ProxyStartCommand(runner);
         const statusCmd = new ProxyStatusCommand(runner);
 
-        await startCmd.execute();
+        const result = await startCmd.execute();
+        expect(result).toBe(true);
         const status = await statusCmd.execute();
         // Note: If proxy is already running, it stays running.
         // If it fails due to sudo, we catch it.

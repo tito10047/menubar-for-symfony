@@ -55,8 +55,9 @@ describe('ServerStopCommand Integration', () => {
         const listCmd = new ServerListCommand(runner);
 
         // Stop server
-        await stopCmd.execute(['--dir', tempDir]);
-        
+        const result = await stopCmd.execute(['--dir', tempDir]);
+        expect(result).toBe(true);
+
         // Wait for it to stop
         await new Promise(resolve => setTimeout(resolve, 2000));
 

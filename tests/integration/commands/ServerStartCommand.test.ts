@@ -56,7 +56,8 @@ describe('ServerStartCommand Integration', () => {
         const listCmd = new ServerListCommand(runner);
 
         // Start server
-        await startCmd.execute(['-d', '--dir', tempDir]);
+        const result = await startCmd.execute(['-d', '--dir', tempDir]);
+        expect(result).toBe(true);
 
         // Wait for it to register
         await new Promise(resolve => setTimeout(resolve, 5000));

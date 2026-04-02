@@ -23,14 +23,14 @@ describe('WhichSymfonyCommand', () => {
         const result = await command.execute();
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['/usr/bin/which', 'symfony']);
-        expect(result).toBe('/usr/local/bin/symfony');
+        expect(result).toEqual({ path: '/usr/local/bin/symfony' });
     });
 
-    it('should return empty string if not found', async () => {
+    it('should return null path if not found', async () => {
         mockProcessRunner.run.mockRejectedValue(new Error('not found'));
 
         const result = await command.execute();
 
-        expect(result).toBe('');
+        expect(result).toEqual({ path: null });
     });
 });
