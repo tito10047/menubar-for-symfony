@@ -40,3 +40,7 @@
 - **Integračné Testy (`tests/integration/`):** Tieto testy volajú reálnu binárku `symfony` CLI. Spúšťajú sa len vtedy, ak je nastavená premenná prostredia `RUN_INTEGRATION=1`.
 - **RealProcessRunner (pre testy):** Pre integračné testy v prostredí Jest vytvor implementáciu `ProcessRunnerInterface`, ktorá využíva Node.js modul `child_process` (keďže Jest beží v Node, nie v GJS).
 - **Spustenie integracnych testou z debug modom** ak potrebujes vydiet povodnu komunikaciu s shellom spusti testy pomocou `DEBUG=1 RUN_INTEGRATION=1 npm run test:integration`
+
+## 8. Logovanie
+
+- Každá dôležitá operácia (spustenie procesu, parsovanie, zmena nastavení) musí byť logovaná s prefixom `[SymfonyMenubar]` pmocou LoggerInterface.
