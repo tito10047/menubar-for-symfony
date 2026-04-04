@@ -1,166 +1,144 @@
 import GObject from 'gi://GObject';
-import {Button} from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { Button } from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import { PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import {PopupBaseMenuItem, PopupMenuItem, PopupSeparatorMenuItem} from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-// --- POMOCNÉ FUNKCIE PRE MODERNÝ DIZAJN ---
+import { createSectionHeader } from './components/SectionHeader.js';
+import { PhpVersionItem, PhpVersionItemType } from './components/PhpVersionItem.js';
+import { ServerMenuItem, ServerMenuItemType } from './components/ServerMenuItem.js';
+import { FavoriteServersGroup, FavoriteServersGroupType } from './components/FavoriteServersGroup.js';
+import { ProxyMenuItem, ProxyMenuItemType } from './components/ProxyMenuItem.js';
 
-function createSectionHeader(text) {
-    const header = new PopupBaseMenuItem({ reactive: false });
-    const label = new St.Label({
-        text: text.toUpperCase(),
-        style: 'font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;'
-    });
-    label.clutter_text.ellipsize = 0;
-    header.add_child(label);
-    return header;
-}
-
-// Pridaný parameter "isOtherServer" na určenie, či má mať tlačidlo "Pridať do obľúbených"
-function createServerItem(name, port, isRunning, isOtherServer = false) {
-    // 1. Vytvoríme submenu položku (čistý názov)
-    const serverMenu = new PopupMenu.PopupSubMenuMenuItem(name);
-    serverMenu.label.set_x_expand(true);
-
-    // 2. OPRAVA SIVÝCH GULIČIEK: Vytvoríme nezávislý St.Label so silným inline CSS
-    const dotColor = isRunning ? '#4ade80' : '#888888';
-    const dotLabel = new St.Label({
-        text: '●  ',
-        style: `color: ${dotColor};`, // CSS farba, ktorú téma neprepíše
-        y_align: Clutter.ActorAlign.CENTER
-    });
-
-    // Vložíme guličku tesne pred názov projektu
-    const labelIndex = serverMenu.get_children().indexOf(serverMenu.label);
-    serverMenu.insert_child_at_index(dotLabel, labelIndex !== -1 ? labelIndex : 1);
-
-    // 3. Port zarovnaný doprava
-    if (port) {
-        const portLabel = new St.Label({
-            text: `:${port}`,
-            style: 'color: rgba(255, 255, 255, 0.4); font-size: 12px; margin-right: 8px;',
-            y_align: Clutter.ActorAlign.CENTER
-        });
-        const childrenCount = serverMenu.get_children().length;
-        serverMenu.insert_child_at_index(portLabel, childrenCount - 1);
-    }
-
-    // 4. Akcie pre 3. úroveň menu
-    if (isRunning) {
-        serverMenu.menu.addMenuItem(new PopupMenuItem('⏹️ Zastaviť server'));
-        serverMenu.menu.addMenuItem(new PopupMenuItem('🌐 Otvoriť v prehliadači'));
-    } else {
-        serverMenu.menu.addMenuItem(new PopupMenuItem('▶️ Spustiť server'));
-    }
-
-    serverMenu.menu.addMenuItem(new PopupSeparatorMenuItem());
-    serverMenu.menu.addMenuItem(new PopupMenuItem('📋 Kopírovať URL'));
-    serverMenu.menu.addMenuItem(new PopupMenuItem('📄 Zobraziť logy'));
-
-    // OPRAVA PRE OSTATNÉ SERVERY: Pridáme extra tlačidlo
-    if (isOtherServer) {
-        serverMenu.menu.addMenuItem(new PopupSeparatorMenuItem());
-        serverMenu.menu.addMenuItem(new PopupMenuItem('⭐ Pridať do obľúbených'));
-    }
-
-    return serverMenu;
-}
-
-// --- HLAVNÁ TRIEDA ---
+import { PhpVersion } from '../core/commands/PhpListCommand.js';
+import { PhpInfo } from '../core/dto/PhpInfo.js';
+import { SymfonyServer } from '../core/commands/ServerListCommand.js';
+import { ProxyStatus } from '../core/commands/ProxyStatusCommand.js';
 
 export const Indicator = GObject.registerClass(
     class Indicator extends Button {
+        declare _phpItem: PhpVersionItemType;
+        declare _mainServerItems: Map<string, ServerMenuItemType>;
+        declare _favoriteServersGroup: FavoriteServersGroupType;
+        declare _proxyItem: ProxyMenuItemType;
+
         _init() {
             super._init(0.0, 'Symfony Menubar', false);
 
-            // OPRAVA ZAROVNANIA "SF": explicitne povieme y_align CENTER
+            this._mainServerItems = new Map();
+
             const topLabel = new St.Label({
-                text: 'SF',
-                y_align: Clutter.ActorAlign.CENTER
+                text: 'sf',
+                y_align: Clutter.ActorAlign.CENTER,
             });
             this.add_child(topLabel);
 
             const menu = this.menu;
 
-            // ==========================================
-            // 1. SEKCIÁ: PHP
-            // ==========================================
+            // ---- PHP section ----
             menu.addMenuItem(createSectionHeader('PHP'));
+            this._phpItem = new PhpVersionItem();
+            menu.addMenuItem(this._phpItem);
+            menu.addMenuItem(new PopupSeparatorMenuItem());
 
-            const phpItem = new PopupBaseMenuItem({reactive: false});
-            const phpBox = new St.BoxLayout({x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+            // ---- Servers section ----
+            menu.addMenuItem(createSectionHeader('Servers'));
 
-            // Fix pre PHP zelenú guličku
-            const phpDot = new St.Label({ text: '●  ', style: 'color: #4ade80;' });
-            const phpTitle = new St.Label({text: '8.2'});
-            phpTitle.set_x_expand(true);
-
-            const opcacheBadge = new St.Label({
-                text: 'OPcache',
-                style: 'font-size: 10px; background-color: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 8px;'
+            const server1 = new ServerMenuItem({
+                name: 'my-super-project',
+                port: '8000',
+                isRunning: true,
+                isFavorite: false,
             });
-
-            phpBox.add_child(phpDot);
-            phpBox.add_child(phpTitle);
-            phpBox.add_child(opcacheBadge);
-            phpItem.add_child(phpBox);
-
-            menu.addMenuItem(phpItem);
+            const server2 = new ServerMenuItem({
+                name: 'old-project',
+                port: '',
+                isRunning: false,
+                isFavorite: false,
+            });
+            this._mainServerItems.set('my-super-project', server1);
+            this._mainServerItems.set('old-project', server2);
+            menu.addMenuItem(server1);
+            menu.addMenuItem(server2);
             menu.addMenuItem(new PopupSeparatorMenuItem());
 
-            // ==========================================
-            // 2. SEKCIÁ: HLAVNÉ SERVERY
-            // ==========================================
-            menu.addMenuItem(createSectionHeader('SERVERS'));
-
-            // Tieto sú hlavné = posledný parameter false (bez tlačidla obľúbených)
-            menu.addMenuItem(createServerItem('moj-super-projekt', '8000', true, false));
-            menu.addMenuItem(createServerItem('stary-projekt', '', false, false));
-            menu.addMenuItem(new PopupSeparatorMenuItem());
-
-            // ==========================================
-            // 3. SEKCIÁ: OSTATNÉ SERVERY (Rozbaľovacie)
-            // ==========================================
-            const serversSubMenu = new PopupMenu.PopupSubMenuMenuItem('📁 Ďalšie obľúbené servery');
-
+            // ---- Favorite servers collapsible group ----
+            this._favoriteServersGroup = new FavoriteServersGroup();
             for (let i = 1; i <= 30; i++) {
                 const isRunning = i % 2 !== 0;
-                const port = isRunning ? (8000 + i).toString() : '';
-
-                // Posledný parameter true = vygeneruje na konci submenu tlačidlo "Pridať do obľúbených"
-                const item = createServerItem(`projekt-cislo-${i}`, port, isRunning, true);
-                serversSubMenu.menu.addMenuItem(item);
+                const port = isRunning ? String(8000 + i) : '';
+                this._favoriteServersGroup.addServer(`project-${i}`, {
+                    name: `project-${i}`,
+                    port,
+                    isRunning,
+                    isFavorite: true,
+                });
             }
-            menu.addMenuItem(serversSubMenu);
+            menu.addMenuItem(this._favoriteServersGroup);
             menu.addMenuItem(new PopupSeparatorMenuItem());
 
-            // ==========================================
-            // 4. SEKCIÁ: PROXY
-            // ==========================================
-            menu.addMenuItem(createSectionHeader('PROXY'));
+            // ---- Proxy section ----
+            menu.addMenuItem(createSectionHeader('Proxy'));
+            this._proxyItem = new ProxyMenuItem();
+            menu.addMenuItem(this._proxyItem);
+        }
 
-            const proxySubMenu = new PopupMenu.PopupSubMenuMenuItem('Proxy beží: port 7080');
+        // ---- Public update API ----
 
-            // Fix pre zelenú guličku v Proxy
-            const proxyDot = new St.Label({ text: '●  ', style: 'color: #4ade80;' });
-            const proxyLabelIdx = proxySubMenu.get_children().indexOf(proxySubMenu.label);
-            proxySubMenu.insert_child_at_index(proxyDot, proxyLabelIdx !== -1 ? proxyLabelIdx : 1);
+        /**
+         * Refreshes the PHP row.
+         * Picks the default version; falls back to the first entry in the list.
+         */
+        updatePhpStatus(versions: PhpVersion[], phpInfoMap: Map<string, PhpInfo>): void {
+            const active = versions.find(v => v.isDefault) ?? versions[0];
+            if (!active) return;
 
-            const startProxyItem = new PopupMenuItem('▶️ Zapnúť');
-            proxySubMenu.menu.addMenuItem(startProxyItem);
+            this._phpItem.updateVersion(active.version);
+            this._phpItem.updateStatus(true);
 
-            const stopProxyItem = new PopupMenuItem('⏹️ Vypnúť');
-            proxySubMenu.menu.addMenuItem(stopProxyItem);
+            const info = phpInfoMap.get(active.version);
+            if (info) {
+                this._phpItem.updateBadges(info);
+            }
+        }
 
-            const restartProxyItem = new PopupMenuItem('🔄 Reštartovať');
-            proxySubMenu.menu.addMenuItem(restartProxyItem);
+        /**
+         * Reconciles the server list in-place: updates existing items, adds new
+         * ones to the favorites group. Does not remove items that disappeared
+         * from the list — call destroy() on this indicator for a full reset.
+         */
+        updateServerStatus(servers: SymfonyServer[]): void {
+            for (const server of servers) {
+                const mainItem = this._mainServerItems.get(server.directory);
+                if (mainItem) {
+                    mainItem.updateStatus(server.isRunning);
+                    mainItem.updatePort(server.isRunning ? String(server.port) : '');
+                    continue;
+                }
 
-            const openBrowserItem = new PopupMenuItem('🌐 Otvoriť v prehliadači');
-            proxySubMenu.menu.addMenuItem(openBrowserItem);
+                const favoriteItem = this._favoriteServersGroup.getServer(server.directory);
+                if (favoriteItem) {
+                    favoriteItem.updateStatus(server.isRunning);
+                    favoriteItem.updatePort(server.isRunning ? String(server.port) : '');
+                    continue;
+                }
 
-            menu.addMenuItem(proxySubMenu);
+                // Unknown server — add it to the favorites group.
+                this._favoriteServersGroup.addServer(server.directory, {
+                    name: server.directory,
+                    port: server.isRunning ? String(server.port) : '',
+                    isRunning: server.isRunning,
+                    isFavorite: true,
+                });
+            }
+        }
+
+        /**
+         * Updates proxy section status dot and label.
+         * Port is not yet available in ProxyStatus; pass it explicitly when known.
+         */
+        updateProxyStatus(status: ProxyStatus, port?: number): void {
+            this._proxyItem.updateStatus(status.isRunning, port);
         }
     }
 );
