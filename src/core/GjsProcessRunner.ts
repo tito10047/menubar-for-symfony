@@ -61,7 +61,7 @@ export class GjsProcessRunner implements ProcessRunnerInterface {
                 try {
                     // Get the result of the communication.
                     // In GJS, communicate_utf8_finish returns [stdout, stderr] or throws an error.
-                    const [stdout, stderr] = (subprocess as any).communicate_utf8_finish(result);
+                    const [, stdout, stderr] = (subprocess as any).communicate_utf8_finish(result);
 
                     // Check if the process exited successfully (exit code 0).
                     const status = (subprocess as any).get_exit_status();

@@ -1,4 +1,5 @@
 // src/extension.ts
+import GLib from "gi://GLib";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
@@ -347,16 +348,650 @@ var Indicator = GObject5.registerClass(
   }
 );
 
+// src/core/GjsProcessRunner.ts
+import Gio from "gi://Gio";
+var GjsProcessRunner = class {
+  /**
+   * @param logger The logger to record command execution and results.
+   * @param binaryPath Default binary to run (e.g., 'symfony'). Defaults to 'symfony'.
+   */
+  constructor(logger, binaryPath = "symfony") {
+    this.logger = logger;
+    this.binaryPath = binaryPath;
+  }
+  logger;
+  binaryPath;
+  /**
+   * Executes a command with arguments asynchronously and returns the stdout.
+   * 
+   * @param command Array containing the arguments (e.g., ['ls', '-la'] or just ['-la'] if binary is set).
+   * @returns A promise that resolves to the stdout string on success.
+   * @throws Error if the process fails or returns a non-zero exit code.
+   */
+  async run(command) {
+    let binary = this.binaryPath;
+    let args = command;
+    if (command.length > 0 && command[0].startsWith("/")) {
+      binary = command[0];
+      args = command.slice(1);
+    }
+    const fullArgs = [binary, ...args];
+    const commandLine = fullArgs.join(" ");
+    this.logger.info(`Running command: ${commandLine}`);
+    return new Promise((resolve, reject) => {
+      let proc;
+      try {
+        proc = Gio.Subprocess.new(
+          fullArgs,
+          Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
+        );
+      } catch (error) {
+        const errorMessage = `Failed to create subprocess for command: ${commandLine}. Error: ${error}`;
+        this.logger.error(errorMessage);
+        return reject(new Error(errorMessage));
+      }
+      proc.communicate_utf8_async(null, null, (subprocess, result) => {
+        try {
+          const [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
+          const status = subprocess.get_exit_status();
+          const exited = subprocess.get_if_exited();
+          if (!exited || status !== 0) {
+            const errorMessage = `Command '${commandLine}' exited with status ${status}. Stderr: ${stderr || "no error output"}`;
+            this.logger.error(errorMessage);
+            return reject(new Error(errorMessage));
+          }
+          this.logger.debug(`Command '${commandLine}' executed successfully.`);
+          resolve(stdout || "");
+        } catch (error) {
+          const errorMessage = `Error reading output of command: ${commandLine}. Error: ${error}`;
+          this.logger.error(errorMessage);
+          reject(new Error(errorMessage));
+        }
+      });
+    });
+  }
+};
+
+// src/core/commands/VersionCommand.ts
+var VersionCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "version";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["version", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      if (!output || output.trim() === "") {
+        this.logger?.warn(`Empty output from ${commandName}`);
+      }
+      const match = output.match(/Symfony CLI (?:version|v)?\s*(\d+\.\d+\.\d+)/i);
+      if (match) {
+        return { version: match[1] };
+      }
+      this.logger?.warn(`Could not parse version from output: ${output}`);
+      return { version: output.trim() };
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ServerListCommand.ts
+var ServerListCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "server:list";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["server:list", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      if (!output || output.trim() === "") {
+        this.logger?.warn(`No servers found (empty output) for ${commandName}`);
+      }
+      const servers = [];
+      const lines = output.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("+") || trimmed.startsWith("-") || trimmed.includes("Directory") || !trimmed.includes("|")) {
+          continue;
+        }
+        const columns = trimmed.split("|").map((c) => c.trim()).filter((c) => c !== "");
+        if (columns.length < 2) continue;
+        const directory = columns[0];
+        const portStr = columns[1];
+        let port = 8e3;
+        let isRunning = false;
+        if (portStr.toLowerCase() === "not running") {
+          isRunning = false;
+        } else {
+          const p = parseInt(portStr, 10);
+          if (!isNaN(p)) {
+            port = p;
+            isRunning = true;
+          }
+        }
+        const url = isRunning ? `https://127.0.0.1:${port}` : "";
+        servers.push({
+          directory,
+          port,
+          url,
+          isRunning
+        });
+      }
+      if (servers.length === 0 && output.trim() !== "") {
+        this.logger?.warn(`No servers found in output of ${commandName}`);
+      }
+      return servers;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/PhpListCommand.ts
+var PhpListCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "local:php:list";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["local:php:list", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      if (!output || output.trim() === "") {
+        this.logger?.warn(`No PHP versions found (empty output) for ${commandName}`);
+      }
+      const versions = [];
+      const lines = output.split("\n");
+      const versionRegex = /(\d+\.\d+(?:\.\d+)?)/;
+      const pathRegex = /(\/[^\s│|]+)/;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("\u2500") || trimmed.startsWith("\u250C") || trimmed.startsWith("\u2514") || trimmed.startsWith("\u251C") || trimmed.includes("Version")) {
+          continue;
+        }
+        const versionMatch = trimmed.match(versionRegex);
+        if (!versionMatch) continue;
+        const version = versionMatch[1];
+        const isDefault = trimmed.toLowerCase().includes("default") || trimmed.includes("*") || trimmed.includes("\u2B50");
+        const pathMatch = trimmed.match(pathRegex);
+        const path = pathMatch ? pathMatch[1] : "";
+        if (!versions.find((v) => v.version === version)) {
+          versions.push({
+            version,
+            path,
+            isDefault
+          });
+        }
+      }
+      if (versions.length === 0 && output.trim() !== "") {
+        this.logger?.warn(`No PHP versions found in output of ${commandName}`);
+      }
+      return versions;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ProxyStatusCommand.ts
+var ProxyStatusCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "proxy:status";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["proxy:status", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      if (!output || output.trim() === "") {
+        this.logger?.warn(`Empty output from ${commandName}`);
+      }
+      const lines = output.split("\n");
+      let isRunning = false;
+      for (let i = 0; i < Math.min(lines.length, 10); i++) {
+        const line = lines[i].toLowerCase();
+        if (line.includes("listening") || line.includes("proxy is running")) {
+          isRunning = true;
+          break;
+        }
+      }
+      const proxies = [];
+      const domainRegex = /([a-zA-Z0-9.\-]+\.wip)/;
+      const pathRegex = /([~/][^\s|│]+)/;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("+") || trimmed.startsWith("-") || trimmed.startsWith("\u250C") || trimmed.startsWith("\u2514") || trimmed.startsWith("\u251C") || trimmed.includes("Domain") || trimmed.includes("Directory")) {
+          continue;
+        }
+        const domainMatch = trimmed.match(domainRegex);
+        if (domainMatch) {
+          const domain = domainMatch[1];
+          const pathMatch = trimmed.match(pathRegex);
+          const directory = pathMatch ? pathMatch[1] : "";
+          if (!proxies.find((p) => p.domain === domain)) {
+            proxies.push({ domain, directory });
+          }
+        }
+      }
+      return { isRunning, proxies };
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ServerStartCommand.ts
+var ServerStartCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "server:start";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["server:start", "-d", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      const lowerOutput = output.toLowerCase();
+      const success = lowerOutput.includes("listening") || lowerOutput.includes("already running");
+      if (!success) {
+        this.logger?.warn(`Command ${commandName} did not indicate clear success. Output: ${output}`);
+      }
+      return success;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ServerStopCommand.ts
+var ServerStopCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "server:stop";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["server:stop", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      const lowerOutput = output.toLowerCase();
+      const success = lowerOutput.includes("stopped") || lowerOutput.includes("no web server is running");
+      if (!success) {
+        this.logger?.warn(`Command ${commandName} did not indicate clear success. Output: ${output}`);
+      }
+      return success;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ProxyStartCommand.ts
+var ProxyStartCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "proxy:start";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["proxy:start", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      const lowerOutput = output.toLowerCase();
+      const success = lowerOutput.includes("listening") || lowerOutput.includes("already running");
+      if (!success) {
+        this.logger?.warn(`Command ${commandName} did not indicate clear success. Output: ${output}`);
+      }
+      return success;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ProxyStopCommand.ts
+var ProxyStopCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "proxy:stop";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["proxy:stop", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      const lowerOutput = output.toLowerCase();
+      const success = lowerOutput.includes("stopped") || lowerOutput.includes("not running");
+      if (!success) {
+        this.logger?.warn(`Command ${commandName} did not indicate clear success. Output: ${output}`);
+      }
+      return success;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/ProxyDomainDetachCommand.ts
+var ProxyDomainDetachCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "proxy:domain:detach";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const commandArgs = ["proxy:domain:detach", "--no-ansi", ...args];
+      const output = await this.processRunner.run(commandArgs);
+      const lowerOutput = output.toLowerCase();
+      const success = lowerOutput.includes("detached") || lowerOutput.includes("not defined anymore");
+      if (!success) {
+        this.logger?.warn(`Command ${commandName} did not indicate clear success. Output: ${output}`);
+      }
+      return success;
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+};
+
+// src/core/commands/WhichSymfonyCommand.ts
+var WhichSymfonyCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "which";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    this.logger?.info(`Executing command ${commandName}`);
+    try {
+      const output = await this.processRunner.run(["/usr/bin/which", "symfony"]);
+      const path = output.trim();
+      if (!path) {
+        this.logger?.warn(`Command ${commandName} returned empty path`);
+      }
+      return { path };
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      return { path: null };
+    }
+  }
+};
+
+// src/core/commands/PhpInfoCommand.ts
+var PhpInfoCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "php:info";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    const commandName = this.getName();
+    const runArgsIni = args.length > 0 ? [args[0], "--ini"] : ["--ini"];
+    const runArgsM = args.length > 0 ? [args[0], "-m"] : ["-m"];
+    const phpLabel = args.length > 0 ? ` for PHP: ${args[0]}` : "";
+    this.logger?.info(`Executing command ${commandName}${phpLabel}`);
+    try {
+      const iniOutput = await this.processRunner.run(runArgsIni);
+      const modulesOutput = await this.processRunner.run(runArgsM);
+      const phpIniPath = this.parseIniPath(iniOutput);
+      const modules = modulesOutput.toLowerCase();
+      return {
+        phpIniPath,
+        hasXdebug: modules.includes("xdebug"),
+        hasApcu: modules.includes("apcu"),
+        hasOpcache: modules.includes("opcache")
+      };
+    } catch (error) {
+      this.logger?.error(`Command ${commandName} failed`, error);
+      throw error;
+    }
+  }
+  parseIniPath(output) {
+    const loadedMatch = output.match(/Loaded Configuration File:\s+(.+)/);
+    if (loadedMatch && loadedMatch[1].trim() !== "(none)") {
+      return loadedMatch[1].trim();
+    }
+    const pathMatch = output.match(/Configuration File \(php\.ini\) Path:\s+(.+)/);
+    if (pathMatch) {
+      return pathMatch[1].trim();
+    }
+    return "";
+  }
+};
+
+// src/core/commands/OpenLogCommand.ts
+var OpenLogCommand = class {
+  constructor(processRunner) {
+    this.processRunner = processRunner;
+  }
+  processRunner;
+  logger;
+  getName() {
+    return "open:log";
+  }
+  setLogger(logger) {
+    this.logger = logger;
+  }
+  async execute(args = []) {
+    try {
+      if (!args || args.length === 0) {
+        throw new Error("Project directory is required");
+      }
+      const projectPath = args[0];
+      this.logger?.info(`Preparing log command for project: ${projectPath}`);
+      return `symfony server:log --dir=${projectPath}`;
+    } catch (error) {
+      this.logger?.error(`Command ${this.getName()} failed: ${error}`);
+      throw error;
+    }
+  }
+};
+
+// src/core/SymfonyCliManager.ts
+var SymfonyCliManager = class {
+  commands = /* @__PURE__ */ new Map();
+  logger;
+  constructor(processRunner) {
+    this.registerCommand(new VersionCommand(processRunner));
+    this.registerCommand(new ServerListCommand(processRunner));
+    this.registerCommand(new PhpListCommand(processRunner));
+    this.registerCommand(new ProxyStatusCommand(processRunner));
+    this.registerCommand(new ServerStartCommand(processRunner));
+    this.registerCommand(new ServerStopCommand(processRunner));
+    this.registerCommand(new ProxyStartCommand(processRunner));
+    this.registerCommand(new ProxyStopCommand(processRunner));
+    this.registerCommand(new ProxyDomainDetachCommand(processRunner));
+    this.registerCommand(new WhichSymfonyCommand(processRunner));
+    this.registerCommand(new PhpInfoCommand(processRunner));
+    this.registerCommand(new OpenLogCommand(processRunner));
+  }
+  setLogger(logger) {
+    this.logger = logger;
+    for (const command of this.commands.values()) {
+      command.setLogger(logger);
+    }
+  }
+  registerCommand(command) {
+    if (this.logger) {
+      command.setLogger(this.logger);
+    }
+    this.commands.set(command.getName(), command);
+  }
+  async runCommand(commandName, args) {
+    try {
+      const command = this.commands.get(commandName);
+      if (!command) {
+        this.logger?.error(`Command ${commandName} not found`);
+        throw new Error(`Command ${commandName} not found`);
+      }
+      return await command.execute(args);
+    } catch (error) {
+      this.logger?.error(`Error running command ${commandName}: ${error}`);
+      throw error;
+    }
+  }
+};
+
+// src/core/logging/ConsoleLogger.ts
+var ConsoleLogger = class {
+  prefix = "[SymfonyMenubar]";
+  debug(message, ...args) {
+    console.debug(`${this.prefix} ${message}`, ...args);
+  }
+  info(message, ...args) {
+    console.info(`${this.prefix} ${message}`, ...args);
+  }
+  warn(message, ...args) {
+    console.warn(`${this.prefix} ${message}`, ...args);
+  }
+  error(message, ...args) {
+    console.error(`${this.prefix} ${message}`, ...args);
+  }
+};
+
 // src/extension.ts
+var REFRESH_INTERVAL_SECONDS = 30;
 var SymfonyMenubarExtension = class extends Extension {
   _indicator = null;
+  _manager = null;
+  _refreshTimer = null;
   enable() {
+    const logger = new ConsoleLogger();
+    const runner = new GjsProcessRunner(logger);
+    this._manager = new SymfonyCliManager(runner);
+    this._manager.setLogger(logger);
     this._indicator = new Indicator();
     Main.panel.addToStatusArea(this.uuid, this._indicator);
+    this._refresh();
+    this._refreshTimer = GLib.timeout_add_seconds(
+      GLib.PRIORITY_DEFAULT,
+      REFRESH_INTERVAL_SECONDS,
+      () => {
+        this._refresh();
+        return GLib.SOURCE_CONTINUE;
+      }
+    );
   }
   disable() {
+    if (this._refreshTimer !== null) {
+      GLib.Source.remove(this._refreshTimer);
+      this._refreshTimer = null;
+    }
     this._indicator?.destroy();
     this._indicator = null;
+    this._manager = null;
+  }
+  _refresh() {
+    if (!this._manager || !this._indicator) return;
+    const manager = this._manager;
+    const indicator = this._indicator;
+    manager.runCommand("local:php:list").then((versions) => {
+      indicator.updatePhpStatus(versions, /* @__PURE__ */ new Map());
+    }).catch((err) => {
+      console.error("[SymfonyMenubar] PHP refresh failed:", err);
+    });
   }
 };
 export {
