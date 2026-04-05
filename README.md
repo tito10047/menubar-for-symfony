@@ -66,6 +66,5 @@ Released by [Jozef  Môstka](https://vsetkosada.sk/en) under the [MIT License](L
 
 This project is inspired by [Symfony CLI](https://github.com/smnandre/symfony-cli-menubar) by [@smnandre](https://github.com/smnandre).
 
-"Symfony" and the Symfony logo are registered trademarks of [Symfony SAS](https://symfony.com). The Symfony name and
-logo are used in this project with the kind permission of the Symfony team. This project is not affiliated with or
-endorsed by Symfony SAS or SensioLabs. See [NOTICE](NOTICE) for full trademark notices.
+"Symfony" and the Symfony logo are registered trademarks of [Symfony SAS](https://symfony.com).  
+
