@@ -36,28 +36,67 @@ export class PhpListCommand implements SymfonyCommandInterface<PhpVersion[]> {
             const versions: PhpVersion[] = [];
             const lines = output.split('\n');
             
-            const versionRegex = /(\d+\.\d+(?:\.\d+)?)/;
-            const pathRegex = /(\/[^\s│|]+)/;
+            // Try to find column positions if it's a table
+            let headerLine = lines.find(l => l.includes('Version') && l.includes('Directory'));
+            let versionIdx = -1, directoryIdx = -1, phpCliIdx = -1;
+
+            if (headerLine) {
+                const parts = headerLine.split('|').map(p => p.trim());
+                versionIdx = parts.indexOf('Version');
+                directoryIdx = parts.indexOf('Directory');
+                phpCliIdx = parts.indexOf('PHP CLI');
+            }
 
             for (const line of lines) {
                 const trimmed = line.trim();
                 if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('┌') ||
-                    trimmed.startsWith('└') || trimmed.startsWith('├') || trimmed.includes('Version')) {
+                    trimmed.startsWith('└') || trimmed.startsWith('├') || 
+                    trimmed.startsWith('+') || trimmed.startsWith('-') ||
+                    trimmed.includes('Version')) {
                     continue;
                 }
 
-                const versionMatch = trimmed.match(versionRegex);
-                if (!versionMatch) continue;
+                let version = '';
+                let path = '';
+                let isDefault = false;
 
-                const version = versionMatch[1];
-                const isDefault = trimmed.toLowerCase().includes('default') ||
-                                  trimmed.includes('*') ||
-                                  trimmed.includes('⭐');
+                if (versionIdx !== -1 && line.includes('|')) {
+                    // Table parsing logic
+                    const parts = line.split('|').map(p => p.trim());
+                    version = parts[versionIdx].replace(/[*⭐]|\(default\)/g, '').trim();
+                    isDefault = parts[versionIdx].includes('*') || 
+                                parts[versionIdx].includes('⭐') || 
+                                parts[versionIdx].toLowerCase().includes('default') ||
+                                line.includes('*') || line.includes('⭐');
+                    
+                    const directory = directoryIdx !== -1 ? parts[directoryIdx] : '';
+                    const phpCli = phpCliIdx !== -1 ? parts[phpCliIdx] : '';
+                    
+                    if (directory && phpCli) {
+                        path = directory.endsWith('/') ? `${directory}${phpCli}` : `${directory}/${phpCli}`;
+                    } else if (directory) {
+                        path = directory;
+                    } else if (phpCli) {
+                        path = phpCli;
+                    }
+                } else {
+                    // Fallback to regex for non-table output
+                    const versionRegex = /(\d+\.\d+(?:\.\d+)?)/;
+                    const pathRegex = /(\/[^\s│|]+)/;
 
-                const pathMatch = trimmed.match(pathRegex);
-                const path = pathMatch ? pathMatch[1] : '';
+                    const versionMatch = trimmed.match(versionRegex);
+                    if (!versionMatch) continue;
 
-                if (!versions.find(v => v.version === version)) {
+                    version = versionMatch[1];
+                    isDefault = trimmed.toLowerCase().includes('default') ||
+                                trimmed.includes('*') ||
+                                trimmed.includes('⭐');
+
+                    const pathMatch = trimmed.match(pathRegex);
+                    path = pathMatch ? pathMatch[1] : '';
+                }
+
+                if (version && !versions.find(v => v.version === version)) {
                     versions.push({
                         version,
                         path,

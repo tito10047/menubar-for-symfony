@@ -61,6 +61,32 @@ describe('PhpListCommand', () => {
         });
     });
 
+    it('should parse complex remi-style output with separate Directory and PHP CLI columns', async () => {
+        const mockOutput = `
++---------+--------------------------+---------+--------------+-------------+---------+---------+
+| Version |        Directory         | PHP CLI |   PHP FPM    |   PHP CGI   | Server  | System? |
++---------+--------------------------+---------+--------------+-------------+---------+---------+
+| 8.3.30  | /opt/remi/php83/root/usr | bin/php | sbin/php-fpm | bin/php-cgi | PHP FPM |         |
+| 8.5.4   | /usr                     | bin/php | bin/php-fpm  |             | PHP FPM | *       |
++---------+--------------------------+---------+--------------+-------------+---------+---------+
+`;
+        mockProcessRunner.run.mockResolvedValue(mockOutput);
+
+        const result = await command.execute();
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({
+            version: "8.3.30",
+            path: "/opt/remi/php83/root/usr/bin/php",
+            isDefault: false
+        });
+        expect(result[1]).toEqual({
+            version: "8.5.4",
+            path: "/usr/bin/php",
+            isDefault: true
+        });
+    });
+
     it('should handle different default indicators', async () => {
         const mockOutput = `
   8.2.0 (default)  /usr/bin/php8.2

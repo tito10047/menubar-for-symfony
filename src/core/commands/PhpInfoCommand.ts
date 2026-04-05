@@ -19,12 +19,20 @@ export class PhpInfoCommand implements SymfonyCommandInterface<PhpInfo> {
     async execute(args: string[] = []): Promise<PhpInfo> {
         const commandName = this.getName();
         
-        // Use the first argument if provided, otherwise assume the runner is already configured with the correct binary
-        const runArgsIni = args.length > 0 ? [args[0], '--ini'] : ['--ini'];
-        const runArgsM = args.length > 0 ? [args[0], '-m'] : ['-m'];
+        // Use 'php' as default or provided argument (if not empty)
+        let phpBin = (args.length > 0 && args[0].trim() !== '') ? args[0] : 'php';
+        
+        // If it looks like a version number (e.g. 8.3 or 8.3.30), we'll have to rely on 
+        // extension.ts passing the full path, but if we get a version here, we can 
+        // try to be smart or just log it.
+        if (phpBin.match(/^\d+\.\d+/)) {
+            this.logger?.warn(`PhpInfoCommand received version ${phpBin} instead of path. Trying to use it as is.`);
+        }
 
-        const phpLabel = args.length > 0 ? ` for PHP: ${args[0]}` : '';
-        this.logger?.info(`Executing command ${commandName}${phpLabel}`);
+        const runArgsIni = [phpBin, '--ini'];
+        const runArgsM = [phpBin, '-m'];
+
+        this.logger?.info(`Executing command ${commandName} using binary: ${phpBin}`);
 
         try {
             const iniOutput = await this.processRunner.run(runArgsIni);

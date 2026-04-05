@@ -26,10 +26,10 @@ describe('PhpInfoCommand Integration', () => {
             return;
         }
 
-        const runner = new NodeProcessRunner(phpPath); // Binary is passed to the constructor
+        const runner = new NodeProcessRunner(); // Default to 'symfony' or whatever is default
         const command = new PhpInfoCommand(runner);
 
-        const result = await command.execute();
+        const result = await command.execute([phpPath]); // Pass real PHP path to test parsing logic
 
         expect(result).toBeDefined();
         expect(typeof result.phpIniPath).toBe('string');
@@ -37,5 +37,28 @@ describe('PhpInfoCommand Integration', () => {
         expect(typeof result.hasXdebug).toBe('boolean');
         expect(typeof result.hasApcu).toBe('boolean');
         expect(typeof result.hasOpcache).toBe('boolean');
+    });
+
+    it('should fetch real PHP info for specific version (e.g. PHP 8.3) if available', async () => {
+        const php83Path = '/opt/remi/php83/root/usr/bin/php';
+        let exists = false;
+        try {
+            execSync(`test -f ${php83Path}`);
+            exists = true;
+        } catch (e) {}
+
+        if (!exists) {
+            console.warn(`⚠️ Skipping specific PHP 8.3 test because binary was not found at ${php83Path}`);
+            return;
+        }
+
+        const runner = new NodeProcessRunner();
+        const command = new PhpInfoCommand(runner);
+
+        const result = await command.execute([php83Path]);
+
+        expect(result).toBeDefined();
+        expect(result.phpIniPath).toContain('php83');
+        expect(typeof result.hasXdebug).toBe('boolean');
     });
 });

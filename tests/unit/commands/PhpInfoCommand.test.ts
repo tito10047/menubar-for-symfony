@@ -45,8 +45,8 @@ Xdebug
 
         const result = await command.execute();
 
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['--ini']);
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['-m']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '--ini']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '-m']);
 
         expect(result).toEqual({
             phpIniPath: '/etc/php/8.3/cli/php.ini',
@@ -64,6 +64,35 @@ Xdebug
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith([phpPath, '--ini']);
         expect(mockProcessRunner.run).toHaveBeenCalledWith([phpPath, '-m']);
+    });
+
+    it('should use specific php version binary (like /usr/bin/php8.3) if passed as path', async () => {
+        const phpBin = '/usr/bin/php8.3';
+        mockProcessRunner.run.mockResolvedValue('');
+
+        await command.execute([phpBin]);
+
+        expect(mockProcessRunner.run).toHaveBeenCalledWith([phpBin, '--ini']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith([phpBin, '-m']);
+    });
+
+    it('should log warning if version string is passed instead of path', async () => {
+        const phpVersion = '8.3';
+        mockProcessRunner.run.mockResolvedValue('');
+
+        await command.execute([phpVersion]);
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('received version 8.3 instead of path'));
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['8.3', '--ini']);
+    });
+
+    it('should use default php when an empty string is passed as path', async () => {
+        mockProcessRunner.run.mockResolvedValue('');
+
+        await command.execute(['']);
+
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '--ini']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '-m']);
     });
 
     it('should handle missing modules and different ini path format', async () => {

@@ -6,45 +6,31 @@ import * as Main from "resource:///org/gnome/shell/ui/main.js";
 // src/ui/Indicator.ts
 import GObject5 from "gi://GObject";
 import { Button } from "resource:///org/gnome/shell/ui/panelMenu.js";
-import { PopupSeparatorMenuItem as PopupSeparatorMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
-import St5 from "gi://St";
+import { PopupSeparatorMenuItem as PopupSeparatorMenuItem2, PopupMenuSection, PopupBaseMenuItem as PopupBaseMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
+import St4 from "gi://St";
 import Clutter4 from "gi://Clutter";
-
-// src/ui/components/SectionHeader.ts
-import St from "gi://St";
-import { PopupBaseMenuItem } from "resource:///org/gnome/shell/ui/popupMenu.js";
-function createSectionHeader(text) {
-  const header = new PopupBaseMenuItem({ reactive: false });
-  const label = new St.Label({
-    text: text.toUpperCase(),
-    style: "font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;"
-  });
-  label.clutter_text.ellipsize = 0;
-  header.add_child(label);
-  return header;
-}
 
 // src/ui/components/PhpVersionItem.ts
 import GObject from "gi://GObject";
-import St2 from "gi://St";
+import St from "gi://St";
 import Clutter from "gi://Clutter";
-import { PopupBaseMenuItem as PopupBaseMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
+import { PopupBaseMenuItem } from "resource:///org/gnome/shell/ui/popupMenu.js";
 var BADGE_STYLE = "font-size: 10px; background-color: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 8px;";
 var PhpVersionItem = GObject.registerClass(
-  class PhpVersionItem2 extends PopupBaseMenuItem2 {
+  class PhpVersionItem2 extends PopupBaseMenuItem {
     _init(params = {}) {
       super._init({ reactive: false });
-      const box = new St2.BoxLayout({
+      const box = new St.BoxLayout({
         x_expand: true,
         y_align: Clutter.ActorAlign.CENTER
       });
-      this._dot = new St2.Label({
+      this._dot = new St.Label({
         text: "\u25CF  ",
         style: "color: #888888;"
       });
-      this._versionLabel = new St2.Label({ text: "\u2014" });
+      this._versionLabel = new St.Label({ text: "\u2014" });
       this._versionLabel.set_x_expand(true);
-      this._badgeContainer = new St2.BoxLayout({});
+      this._badgeContainer = new St.BoxLayout({});
       box.add_child(this._dot);
       box.add_child(this._versionLabel);
       box.add_child(this._badgeContainer);
@@ -67,17 +53,17 @@ var PhpVersionItem = GObject.registerClass(
       this._badgeContainer.destroy_all_children();
       if (info.hasOpcache) {
         this._badgeContainer.add_child(
-          new St2.Label({ text: "OPcache", style: BADGE_STYLE })
+          new St.Label({ text: "OPcache", style: BADGE_STYLE })
         );
       }
       if (info.hasXdebug) {
         this._badgeContainer.add_child(
-          new St2.Label({ text: "Xdebug", style: BADGE_STYLE })
+          new St.Label({ text: "Xdebug", style: BADGE_STYLE })
         );
       }
       if (info.hasApcu) {
         this._badgeContainer.add_child(
-          new St2.Label({ text: "APCu", style: BADGE_STYLE })
+          new St.Label({ text: "APCu", style: BADGE_STYLE })
         );
       }
     }
@@ -86,7 +72,7 @@ var PhpVersionItem = GObject.registerClass(
 
 // src/ui/components/ServerMenuItem.ts
 import GObject2 from "gi://GObject";
-import St3 from "gi://St";
+import St2 from "gi://St";
 import Clutter2 from "gi://Clutter";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { PopupMenuItem, PopupSeparatorMenuItem } from "resource:///org/gnome/shell/ui/popupMenu.js";
@@ -100,7 +86,7 @@ var ServerMenuItem = GObject2.registerClass(
       this._isRunning = params.isRunning;
       this._isFavorite = params.isFavorite;
       this._portLabel = null;
-      this._dot = new St3.Label({
+      this._dot = new St2.Label({
         text: "\u25CF  ",
         style: `color: ${STOPPED_COLOR};`,
         y_align: Clutter2.ActorAlign.CENTER
@@ -133,7 +119,7 @@ var ServerMenuItem = GObject2.registerClass(
         this._portLabel = null;
       }
       if (!port) return;
-      this._portLabel = new St3.Label({
+      this._portLabel = new St2.Label({
         text: `:${port}`,
         style: "color: rgba(255, 255, 255, 0.4); font-size: 12px; margin-right: 8px;",
         y_align: Clutter2.ActorAlign.CENTER
@@ -198,7 +184,7 @@ var FavoriteServersGroup = GObject3.registerClass(
 
 // src/ui/components/ProxyMenuItem.ts
 import GObject4 from "gi://GObject";
-import St4 from "gi://St";
+import St3 from "gi://St";
 import Clutter3 from "gi://Clutter";
 import * as PopupMenu3 from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { PopupMenuItem as PopupMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
@@ -208,7 +194,7 @@ var ProxyMenuItem = GObject4.registerClass(
   class ProxyMenuItem2 extends PopupMenu3.PopupSubMenuMenuItem {
     _init() {
       super._init("Proxy: stopped");
-      this._dot = new St4.Label({
+      this._dot = new St3.Label({
         text: "\u25CF  ",
         style: `color: ${STOPPED_COLOR2};`,
         y_align: Clutter3.ActorAlign.CENTER
@@ -248,20 +234,37 @@ var ProxyMenuItem = GObject4.registerClass(
 // src/ui/Indicator.ts
 var Indicator = GObject5.registerClass(
   class Indicator2 extends Button {
-    _init() {
+    _init(params = {}) {
       super._init(0, "Symfony Menubar", false);
       this._mainServerItems = /* @__PURE__ */ new Map();
-      const topLabel = new St5.Label({
+      const topLabel = new St4.Label({
         text: "sf",
         y_align: Clutter4.ActorAlign.CENTER
       });
       this.add_child(topLabel);
       const menu = this.menu;
-      menu.addMenuItem(createSectionHeader("PHP"));
-      this._phpItem = new PhpVersionItem();
-      menu.addMenuItem(this._phpItem);
+      const phpHeader = new PopupBaseMenuItem2({ reactive: false });
+      const phpHeaderLabel = new St4.Label({
+        text: "PHP",
+        style: "font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.4); padding-top: 5px; padding-bottom: 2px;",
+        x_expand: true
+      });
+      phpHeaderLabel.clutter_text.ellipsize = 0;
+      phpHeader.add_child(phpHeaderLabel);
+      if (params.onRefresh) {
+        const refreshBtn = new St4.Button({
+          label: "\u21BA",
+          reactive: true,
+          style: "font-size: 14px; color: rgba(255,255,255,0.5); padding: 0 4px;"
+        });
+        refreshBtn.connect("clicked", () => params.onRefresh());
+        phpHeader.add_child(refreshBtn);
+      }
+      menu.addMenuItem(phpHeader);
+      this._phpSection = new PopupMenuSection();
+      menu.addMenuItem(this._phpSection);
       menu.addMenuItem(new PopupSeparatorMenuItem2());
-      menu.addMenuItem(createSectionHeader("Servers"));
+      menu.addMenuItem(this._createSectionHeader("Servers"));
       const server1 = new ServerMenuItem({
         name: "my-super-project",
         port: "8000",
@@ -292,23 +295,34 @@ var Indicator = GObject5.registerClass(
       }
       menu.addMenuItem(this._favoriteServersGroup);
       menu.addMenuItem(new PopupSeparatorMenuItem2());
-      menu.addMenuItem(createSectionHeader("Proxy"));
+      menu.addMenuItem(this._createSectionHeader("Proxy"));
       this._proxyItem = new ProxyMenuItem();
       menu.addMenuItem(this._proxyItem);
     }
+    _createSectionHeader(text) {
+      const header = new PopupBaseMenuItem2({ reactive: false });
+      const label = new St4.Label({
+        text: text.toUpperCase(),
+        style: "font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;"
+      });
+      label.clutter_text.ellipsize = 0;
+      header.add_child(label);
+      return header;
+    }
     // ---- Public update API ----
     /**
-     * Refreshes the PHP row.
-     * Picks the default version; falls back to the first entry in the list.
+     * Refreshes the PHP section with all available versions.
+     * Default version gets a green dot; others get a gray dot.
      */
     updatePhpStatus(versions, phpInfoMap) {
-      const active = versions.find((v) => v.isDefault) ?? versions[0];
-      if (!active) return;
-      this._phpItem.updateVersion(active.version);
-      this._phpItem.updateStatus(true);
-      const info = phpInfoMap.get(active.version);
-      if (info) {
-        this._phpItem.updateBadges(info);
+      this._phpSection.removeAll();
+      for (const version of versions) {
+        const item = new PhpVersionItem();
+        item.updateVersion(version.version);
+        item.updateStatus(version.isDefault);
+        const info = phpInfoMap.get(version.version);
+        if (info) item.updateBadges(info);
+        this._phpSection.addMenuItem(item);
       }
     }
     /**
@@ -534,20 +548,46 @@ var PhpListCommand = class {
       }
       const versions = [];
       const lines = output.split("\n");
-      const versionRegex = /(\d+\.\d+(?:\.\d+)?)/;
-      const pathRegex = /(\/[^\s│|]+)/;
+      let headerLine = lines.find((l) => l.includes("Version") && l.includes("Directory"));
+      let versionIdx = -1, directoryIdx = -1, phpCliIdx = -1;
+      if (headerLine) {
+        const parts = headerLine.split("|").map((p) => p.trim());
+        versionIdx = parts.indexOf("Version");
+        directoryIdx = parts.indexOf("Directory");
+        phpCliIdx = parts.indexOf("PHP CLI");
+      }
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("\u2500") || trimmed.startsWith("\u250C") || trimmed.startsWith("\u2514") || trimmed.startsWith("\u251C") || trimmed.includes("Version")) {
+        if (!trimmed || trimmed.startsWith("\u2500") || trimmed.startsWith("\u250C") || trimmed.startsWith("\u2514") || trimmed.startsWith("\u251C") || trimmed.startsWith("+") || trimmed.startsWith("-") || trimmed.includes("Version")) {
           continue;
         }
-        const versionMatch = trimmed.match(versionRegex);
-        if (!versionMatch) continue;
-        const version = versionMatch[1];
-        const isDefault = trimmed.toLowerCase().includes("default") || trimmed.includes("*") || trimmed.includes("\u2B50");
-        const pathMatch = trimmed.match(pathRegex);
-        const path = pathMatch ? pathMatch[1] : "";
-        if (!versions.find((v) => v.version === version)) {
+        let version = "";
+        let path = "";
+        let isDefault = false;
+        if (versionIdx !== -1 && line.includes("|")) {
+          const parts = line.split("|").map((p) => p.trim());
+          version = parts[versionIdx].replace(/[*⭐]|\(default\)/g, "").trim();
+          isDefault = parts[versionIdx].includes("*") || parts[versionIdx].includes("\u2B50") || parts[versionIdx].toLowerCase().includes("default") || line.includes("*") || line.includes("\u2B50");
+          const directory = directoryIdx !== -1 ? parts[directoryIdx] : "";
+          const phpCli = phpCliIdx !== -1 ? parts[phpCliIdx] : "";
+          if (directory && phpCli) {
+            path = directory.endsWith("/") ? `${directory}${phpCli}` : `${directory}/${phpCli}`;
+          } else if (directory) {
+            path = directory;
+          } else if (phpCli) {
+            path = phpCli;
+          }
+        } else {
+          const versionRegex = /(\d+\.\d+(?:\.\d+)?)/;
+          const pathRegex = /(\/[^\s│|]+)/;
+          const versionMatch = trimmed.match(versionRegex);
+          if (!versionMatch) continue;
+          version = versionMatch[1];
+          isDefault = trimmed.toLowerCase().includes("default") || trimmed.includes("*") || trimmed.includes("\u2B50");
+          const pathMatch = trimmed.match(pathRegex);
+          path = pathMatch ? pathMatch[1] : "";
+        }
+        if (version && !versions.find((v) => v.version === version)) {
           versions.push({
             version,
             path,
@@ -828,10 +868,13 @@ var PhpInfoCommand = class {
   }
   async execute(args = []) {
     const commandName = this.getName();
-    const runArgsIni = args.length > 0 ? [args[0], "--ini"] : ["--ini"];
-    const runArgsM = args.length > 0 ? [args[0], "-m"] : ["-m"];
-    const phpLabel = args.length > 0 ? ` for PHP: ${args[0]}` : "";
-    this.logger?.info(`Executing command ${commandName}${phpLabel}`);
+    let phpBin = args.length > 0 && args[0].trim() !== "" ? args[0] : "php";
+    if (phpBin.match(/^\d+\.\d+/)) {
+      this.logger?.warn(`PhpInfoCommand received version ${phpBin} instead of path. Trying to use it as is.`);
+    }
+    const runArgsIni = [phpBin, "--ini"];
+    const runArgsM = [phpBin, "-m"];
+    this.logger?.info(`Executing command ${commandName} using binary: ${phpBin}`);
     try {
       const iniOutput = await this.processRunner.run(runArgsIni);
       const modulesOutput = await this.processRunner.run(runArgsM);
@@ -956,13 +999,15 @@ var REFRESH_INTERVAL_SECONDS = 30;
 var SymfonyMenubarExtension = class extends Extension {
   _indicator = null;
   _manager = null;
+  _logger = null;
   _refreshTimer = null;
   enable() {
-    const logger = new ConsoleLogger();
-    const runner = new GjsProcessRunner(logger);
+    this._logger = new ConsoleLogger();
+    this._logger.info("Enabling extension");
+    const runner = new GjsProcessRunner(this._logger);
     this._manager = new SymfonyCliManager(runner);
-    this._manager.setLogger(logger);
-    this._indicator = new Indicator();
+    this._manager.setLogger(this._logger);
+    this._indicator = new Indicator({ onRefresh: () => this._refresh() });
     Main.panel.addToStatusArea(this.uuid, this._indicator);
     this._refresh();
     this._refreshTimer = GLib.timeout_add_seconds(
@@ -975,6 +1020,7 @@ var SymfonyMenubarExtension = class extends Extension {
     );
   }
   disable() {
+    this._logger?.info("Disabling extension");
     if (this._refreshTimer !== null) {
       GLib.Source.remove(this._refreshTimer);
       this._refreshTimer = null;
@@ -982,15 +1028,25 @@ var SymfonyMenubarExtension = class extends Extension {
     this._indicator?.destroy();
     this._indicator = null;
     this._manager = null;
+    this._logger = null;
   }
   _refresh() {
     if (!this._manager || !this._indicator) return;
     const manager = this._manager;
     const indicator = this._indicator;
-    manager.runCommand("local:php:list").then((versions) => {
-      indicator.updatePhpStatus(versions, /* @__PURE__ */ new Map());
+    manager.runCommand("local:php:list").then(async (versions) => {
+      const phpInfoMap = /* @__PURE__ */ new Map();
+      for (const version of versions) {
+        try {
+          const info = await manager.runCommand("php:info", [version.path]);
+          phpInfoMap.set(version.version, info);
+        } catch (err) {
+          this._logger?.error(`php:info failed for ${version.version}:`, err);
+        }
+      }
+      indicator.updatePhpStatus(versions, phpInfoMap);
     }).catch((err) => {
-      console.error("[SymfonyMenubar] PHP refresh failed:", err);
+      this._logger?.error("PHP refresh failed:", err);
     });
   }
 };

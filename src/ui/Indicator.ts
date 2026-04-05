@@ -1,10 +1,9 @@
 import GObject from 'gi://GObject';
 import { Button } from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import { PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupSeparatorMenuItem, PopupMenuSection, PopupBaseMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
-import { createSectionHeader } from './components/SectionHeader.js';
 import { PhpVersionItem, PhpVersionItemType } from './components/PhpVersionItem.js';
 import { ServerMenuItem, ServerMenuItemType } from './components/ServerMenuItem.js';
 import { FavoriteServersGroup, FavoriteServersGroupType } from './components/FavoriteServersGroup.js';
@@ -17,12 +16,12 @@ import { ProxyStatus } from '../core/commands/ProxyStatusCommand.js';
 
 export const Indicator = GObject.registerClass(
     class Indicator extends Button {
-        declare _phpItem: PhpVersionItemType;
+        declare _phpSection: InstanceType<typeof PopupMenuSection>;
         declare _mainServerItems: Map<string, ServerMenuItemType>;
         declare _favoriteServersGroup: FavoriteServersGroupType;
         declare _proxyItem: ProxyMenuItemType;
 
-        _init() {
+        _init(params: { onRefresh?: () => void } = {}) {
             super._init(0.0, 'Symfony Menubar', false);
 
             this._mainServerItems = new Map();
@@ -36,13 +35,32 @@ export const Indicator = GObject.registerClass(
             const menu = this.menu;
 
             // ---- PHP section ----
-            menu.addMenuItem(createSectionHeader('PHP'));
-            this._phpItem = new PhpVersionItem();
-            menu.addMenuItem(this._phpItem);
+            const phpHeader = new PopupBaseMenuItem({ reactive: false });
+            const phpHeaderLabel = new St.Label({
+                text: 'PHP',
+                style: 'font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.4); padding-top: 5px; padding-bottom: 2px;',
+                x_expand: true,
+            });
+            phpHeaderLabel.clutter_text.ellipsize = 0;
+            phpHeader.add_child(phpHeaderLabel);
+
+            if (params.onRefresh) {
+                const refreshBtn = new St.Button({
+                    label: '↺',
+                    reactive: true,
+                    style: 'font-size: 14px; color: rgba(255,255,255,0.5); padding: 0 4px;',
+                });
+                refreshBtn.connect('clicked', () => params.onRefresh!());
+                phpHeader.add_child(refreshBtn);
+            }
+            menu.addMenuItem(phpHeader);
+
+            this._phpSection = new PopupMenuSection();
+            menu.addMenuItem(this._phpSection);
             menu.addMenuItem(new PopupSeparatorMenuItem());
 
             // ---- Servers section ----
-            menu.addMenuItem(createSectionHeader('Servers'));
+            menu.addMenuItem(this._createSectionHeader('Servers'));
 
             const server1 = new ServerMenuItem({
                 name: 'my-super-project',
@@ -78,27 +96,37 @@ export const Indicator = GObject.registerClass(
             menu.addMenuItem(new PopupSeparatorMenuItem());
 
             // ---- Proxy section ----
-            menu.addMenuItem(createSectionHeader('Proxy'));
+            menu.addMenuItem(this._createSectionHeader('Proxy'));
             this._proxyItem = new ProxyMenuItem();
             menu.addMenuItem(this._proxyItem);
+        }
+
+        private _createSectionHeader(text: string): InstanceType<typeof PopupBaseMenuItem> {
+            const header = new PopupBaseMenuItem({ reactive: false });
+            const label = new St.Label({
+                text: text.toUpperCase(),
+                style: 'font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;',
+            });
+            label.clutter_text.ellipsize = 0;
+            header.add_child(label);
+            return header;
         }
 
         // ---- Public update API ----
 
         /**
-         * Refreshes the PHP row.
-         * Picks the default version; falls back to the first entry in the list.
+         * Refreshes the PHP section with all available versions.
+         * Default version gets a green dot; others get a gray dot.
          */
         updatePhpStatus(versions: PhpVersion[], phpInfoMap: Map<string, PhpInfo>): void {
-            const active = versions.find(v => v.isDefault) ?? versions[0];
-            if (!active) return;
-
-            this._phpItem.updateVersion(active.version);
-            this._phpItem.updateStatus(true);
-
-            const info = phpInfoMap.get(active.version);
-            if (info) {
-                this._phpItem.updateBadges(info);
+            this._phpSection.removeAll();
+            for (const version of versions) {
+                const item = new PhpVersionItem();
+                item.updateVersion(version.version);
+                item.updateStatus(version.isDefault);
+                const info = phpInfoMap.get(version.version);
+                if (info) item.updateBadges(info);
+                this._phpSection.addMenuItem(item);
             }
         }
 
