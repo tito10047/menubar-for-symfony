@@ -1,14 +1,15 @@
 // src/extension.ts
 import GLib from "gi://GLib";
+import Gio2 from "gi://Gio";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 // src/ui/Indicator.ts
-import GObject5 from "gi://GObject";
+import GObject6 from "gi://GObject";
 import { Button } from "resource:///org/gnome/shell/ui/panelMenu.js";
 import { PopupSeparatorMenuItem as PopupSeparatorMenuItem2, PopupMenuSection } from "resource:///org/gnome/shell/ui/popupMenu.js";
-import St5 from "gi://St";
-import Clutter4 from "gi://Clutter";
+import St6 from "gi://St";
+import Clutter5 from "gi://Clutter";
 
 // src/ui/components/PhpVersionItem.ts
 import GObject from "gi://GObject";
@@ -159,17 +160,120 @@ var ServerMenuItem = GObject2.registerClass(
   }
 );
 
-// src/ui/components/FavoriteServersGroup.ts
+// src/ui/components/ServerRowItem.ts
 import GObject3 from "gi://GObject";
+import St3 from "gi://St";
+import Clutter3 from "gi://Clutter";
 import * as PopupMenu2 from "resource:///org/gnome/shell/ui/popupMenu.js";
-var FavoriteServersGroup = GObject3.registerClass(
-  class FavoriteServersGroup2 extends PopupMenu2.PopupSubMenuMenuItem {
+var RUNNING_COLOR2 = "#4ade80";
+var STOPPED_COLOR2 = "#888888";
+var ServerRowItem = GObject3.registerClass(
+  class ServerRowItem2 extends PopupMenu2.PopupBaseMenuItem {
+    _init(params) {
+      super._init({ reactive: false });
+      this._directory = params.directory;
+      this._isRunning = params.isRunning;
+      this._isFavorite = params.isFavorite;
+      this._onStart = params.onStart;
+      this._onStop = params.onStop;
+      this._onOpenBrowser = params.onOpenBrowser;
+      this._onToggleFavorite = params.onToggleFavorite;
+      this._dot = new St3.Label({
+        text: "\u25CF ",
+        style: `color: ${params.isRunning ? RUNNING_COLOR2 : STOPPED_COLOR2};`,
+        y_align: Clutter3.ActorAlign.CENTER
+      });
+      const nameLabel = new St3.Label({
+        text: params.name,
+        x_expand: true,
+        y_align: Clutter3.ActorAlign.CENTER
+      });
+      this._portLabel = new St3.Label({
+        text: params.port ? `:${params.port}` : "",
+        style: "color: rgba(255, 255, 255, 0.4); font-size: 12px; margin-right: 8px;",
+        y_align: Clutter3.ActorAlign.CENTER,
+        visible: !!params.port
+      });
+      this._startStopBtn = this._makeIconButton(
+        params.isRunning ? "media-playback-stop-symbolic" : "media-playback-start-symbolic"
+      );
+      this._browserBtn = this._makeIconButton("web-browser-symbolic");
+      this._browserBtn.visible = params.isRunning;
+      this._favoriteBtn = this._makeIconButton(
+        params.isFavorite ? "starred-symbolic" : "non-starred-symbolic"
+      );
+      const buttonBox = new St3.BoxLayout({
+        y_align: Clutter3.ActorAlign.CENTER
+      });
+      buttonBox.add_child(this._startStopBtn);
+      buttonBox.add_child(this._browserBtn);
+      buttonBox.add_child(this._favoriteBtn);
+      this.add_child(this._dot);
+      this.add_child(nameLabel);
+      this.add_child(this._portLabel);
+      this.add_child(buttonBox);
+      this._connectSignals();
+    }
+    updateStatus(isRunning) {
+      this._isRunning = isRunning;
+      this._dot.set_style(`color: ${isRunning ? RUNNING_COLOR2 : STOPPED_COLOR2};`);
+      this._startStopBtn.get_child()?.set_icon_name(
+        isRunning ? "media-playback-stop-symbolic" : "media-playback-start-symbolic"
+      );
+      this._browserBtn.visible = isRunning;
+    }
+    updatePort(port) {
+      this._portLabel.set_text(port ? `:${port}` : "");
+      this._portLabel.visible = !!port;
+    }
+    updateFavorite(isFavorite) {
+      this._isFavorite = isFavorite;
+      this._favoriteBtn.get_child()?.set_icon_name(isFavorite ? "starred-symbolic" : "non-starred-symbolic");
+    }
+    // ---- private helpers ----
+    _makeIconButton(iconName) {
+      const icon = new St3.Icon({
+        icon_name: iconName,
+        icon_size: 12,
+        style: "color: rgba(255,255,255,0.7);"
+      });
+      return new St3.Button({
+        child: icon,
+        style: "padding: 2px 4px; background: transparent; border: none;",
+        can_focus: true,
+        x_align: Clutter3.ActorAlign.CENTER,
+        y_align: Clutter3.ActorAlign.CENTER
+      });
+    }
+    _connectSignals() {
+      this._startStopBtn.connect("clicked", () => {
+        if (this._isRunning) {
+          this._onStop(this._directory);
+        } else {
+          this._onStart(this._directory);
+        }
+      });
+      this._browserBtn.connect("clicked", () => {
+        this._onOpenBrowser(this._directory);
+      });
+      this._favoriteBtn.connect("clicked", () => {
+        this._onToggleFavorite(this._directory);
+      });
+    }
+  }
+);
+
+// src/ui/components/FavoriteServersGroup.ts
+import GObject4 from "gi://GObject";
+import * as PopupMenu3 from "resource:///org/gnome/shell/ui/popupMenu.js";
+var FavoriteServersGroup = GObject4.registerClass(
+  class FavoriteServersGroup2 extends PopupMenu3.PopupSubMenuMenuItem {
     _init() {
       super._init("\u{1F4C1} Other servers");
       this._serverMap = /* @__PURE__ */ new Map();
     }
     /**
-     * Registers a pre-created ServerMenuItem under `directory` as the
+     * Registers a pre-created ServerRowItem under `directory` as the
      * canonical key (matches SymfonyServer.directory), and appends it to the submenu.
      */
     addServer(directory, item) {
@@ -197,21 +301,21 @@ var FavoriteServersGroup = GObject3.registerClass(
 );
 
 // src/ui/components/ProxyMenuItem.ts
-import GObject4 from "gi://GObject";
-import St3 from "gi://St";
-import Clutter3 from "gi://Clutter";
-import * as PopupMenu3 from "resource:///org/gnome/shell/ui/popupMenu.js";
+import GObject5 from "gi://GObject";
+import St4 from "gi://St";
+import Clutter4 from "gi://Clutter";
+import * as PopupMenu4 from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { PopupMenuItem as PopupMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
-var RUNNING_COLOR2 = "#4ade80";
-var STOPPED_COLOR2 = "#888888";
-var ProxyMenuItem = GObject4.registerClass(
-  class ProxyMenuItem2 extends PopupMenu3.PopupSubMenuMenuItem {
+var RUNNING_COLOR3 = "#4ade80";
+var STOPPED_COLOR3 = "#888888";
+var ProxyMenuItem = GObject5.registerClass(
+  class ProxyMenuItem2 extends PopupMenu4.PopupSubMenuMenuItem {
     _init() {
       super._init("Proxy: stopped");
-      this._dot = new St3.Label({
+      this._dot = new St4.Label({
         text: "\u25CF  ",
-        style: `color: ${STOPPED_COLOR2};`,
-        y_align: Clutter3.ActorAlign.CENTER
+        style: `color: ${STOPPED_COLOR3};`,
+        y_align: Clutter4.ActorAlign.CENTER
       });
       const labelIdx = this.get_children().indexOf(this.label);
       this.insert_child_at_index(this._dot, labelIdx !== -1 ? labelIdx : 1);
@@ -232,7 +336,7 @@ var ProxyMenuItem = GObject4.registerClass(
      * @param port      - Optional port number shown in the label when running.
      */
     updateStatus(isRunning, port) {
-      this._dot.set_style(`color: ${isRunning ? RUNNING_COLOR2 : STOPPED_COLOR2};`);
+      this._dot.set_style(`color: ${isRunning ? RUNNING_COLOR3 : STOPPED_COLOR3};`);
       const labelText = isRunning ? `Proxy running${port !== void 0 ? `: port ${port}` : ""}` : "Proxy: stopped";
       this.label.set_text(labelText);
       this._startItem.visible = !isRunning;
@@ -246,11 +350,11 @@ var ProxyMenuItem = GObject4.registerClass(
 );
 
 // src/ui/components/SectionHeader.ts
-import St4 from "gi://St";
-import { PopupBaseMenuItem as PopupBaseMenuItem2 } from "resource:///org/gnome/shell/ui/popupMenu.js";
+import St5 from "gi://St";
+import { PopupBaseMenuItem as PopupBaseMenuItem3 } from "resource:///org/gnome/shell/ui/popupMenu.js";
 function createSectionHeader(text, options) {
-  const header = new PopupBaseMenuItem2({ reactive: false });
-  const label = new St4.Label({
+  const header = new PopupBaseMenuItem3({ reactive: false });
+  const label = new St5.Label({
     text: text.toUpperCase(),
     style: "font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;",
     x_expand: true
@@ -258,7 +362,7 @@ function createSectionHeader(text, options) {
   label.clutter_text.ellipsize = 0;
   header.add_child(label);
   if (options?.onRefresh) {
-    const btn = new St4.Button({
+    const btn = new St5.Button({
       label: "\u21BA",
       reactive: true,
       track_hover: true,
@@ -278,15 +382,18 @@ function createSectionHeader(text, options) {
 }
 
 // src/ui/Indicator.ts
-var Indicator = GObject5.registerClass(
+var Indicator = GObject6.registerClass(
   class Indicator2 extends Button {
     _init(params) {
       super._init(0, "Symfony Menubar", false);
       this._favoritesRepository = params.favoritesRepository;
       this._onRefresh = params.onRefresh;
-      const topLabel = new St5.Label({
+      this._onStartServer = params.onStartServer;
+      this._onStopServer = params.onStopServer;
+      this._onOpenBrowser = params.onOpenBrowser;
+      const topLabel = new St6.Label({
         text: "sf",
-        y_align: Clutter4.ActorAlign.CENTER
+        y_align: Clutter5.ActorAlign.CENTER
       });
       this.add_child(topLabel);
       const menu = this.menu;
@@ -331,24 +438,37 @@ var Indicator = GObject5.registerClass(
       for (const server of servers) {
         const isFav = this._favoritesRepository.isFavorite(server.directory);
         const name = server.directory.split("/").pop() ?? server.directory;
-        const item = new ServerMenuItem({
-          directory: server.directory,
-          name,
-          port: server.isRunning ? String(server.port) : "",
-          isRunning: server.isRunning,
-          isFavorite: isFav,
-          onToggleFavorite: (dir) => {
-            if (this._favoritesRepository.isFavorite(dir)) {
-              this._favoritesRepository.remove(dir);
-            } else {
-              this._favoritesRepository.add(dir);
-            }
-            this._onRefresh?.();
+        const port = server.isRunning ? String(server.port) : "";
+        const onToggleFavorite = (dir) => {
+          if (this._favoritesRepository.isFavorite(dir)) {
+            this._favoritesRepository.remove(dir);
+          } else {
+            this._favoritesRepository.add(dir);
           }
-        });
+          this._onRefresh?.();
+        };
         if (isFav) {
+          const item = new ServerMenuItem({
+            directory: server.directory,
+            name,
+            port,
+            isRunning: server.isRunning,
+            isFavorite: true,
+            onToggleFavorite
+          });
           this._serverSection.addMenuItem(item);
         } else {
+          const item = new ServerRowItem({
+            directory: server.directory,
+            name,
+            port,
+            isRunning: server.isRunning,
+            isFavorite: false,
+            onStart: this._onStartServer,
+            onStop: this._onStopServer,
+            onOpenBrowser: this._onOpenBrowser,
+            onToggleFavorite
+          });
           this._otherServersGroup.addServer(server.directory, item);
         }
       }
@@ -1037,6 +1157,7 @@ var SymfonyMenubarExtension = class extends Extension {
   _manager = null;
   _logger = null;
   _refreshTimer = null;
+  _lastServers = null;
   enable() {
     this._logger = new ConsoleLogger();
     this._logger.info("Enabling extension");
@@ -1047,7 +1168,19 @@ var SymfonyMenubarExtension = class extends Extension {
     const favoritesRepository = new FavoritesRepository(settings);
     this._indicator = new Indicator({
       onRefresh: () => this._refresh(),
-      favoritesRepository
+      favoritesRepository,
+      onStartServer: async (dir) => {
+        await this._manager?.runCommand("server:start", [dir]);
+        this._refresh();
+      },
+      onStopServer: async (dir) => {
+        await this._manager?.runCommand("server:stop", [dir]);
+        this._refresh();
+      },
+      onOpenBrowser: (dir) => {
+        const server = this._lastServers?.find((s) => s.directory === dir);
+        if (server?.url) Gio2.AppInfo.launch_default_for_uri(server.url, null);
+      }
     });
     Main.panel.addToStatusArea(this.uuid, this._indicator);
     this._refresh();
@@ -1070,6 +1203,7 @@ var SymfonyMenubarExtension = class extends Extension {
     this._indicator = null;
     this._manager = null;
     this._logger = null;
+    this._lastServers = null;
   }
   _refresh() {
     if (!this._manager || !this._indicator) return;
@@ -1090,6 +1224,7 @@ var SymfonyMenubarExtension = class extends Extension {
       this._logger?.error("PHP refresh failed:", err);
     });
     manager.runCommand("server:list").then((servers) => {
+      this._lastServers = servers;
       indicator.updateServerStatus(servers);
     }).catch((err) => {
       this._logger?.error("Server list refresh failed:", err);

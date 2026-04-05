@@ -1,4 +1,5 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -19,6 +20,7 @@ export default class SymfonyMenubarExtension extends Extension {
     private _manager: SymfonyCliManager | null = null;
     private _logger: LoggerInterface | null = null;
     private _refreshTimer: number | null = null;
+    private _lastServers: SymfonyServer[] | null = null;
 
     enable(): void {
         this._logger = new ConsoleLogger();
@@ -34,6 +36,18 @@ export default class SymfonyMenubarExtension extends Extension {
         this._indicator = new Indicator({
             onRefresh: () => this._refresh(),
             favoritesRepository,
+            onStartServer: async (dir) => {
+                await this._manager?.runCommand<boolean>('server:start', [dir]);
+                this._refresh();
+            },
+            onStopServer: async (dir) => {
+                await this._manager?.runCommand<boolean>('server:stop', [dir]);
+                this._refresh();
+            },
+            onOpenBrowser: (dir) => {
+                const server = this._lastServers?.find(s => s.directory === dir);
+                if (server?.url) Gio.AppInfo.launch_default_for_uri(server.url, null);
+            },
         });
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
@@ -59,6 +73,7 @@ export default class SymfonyMenubarExtension extends Extension {
         this._indicator = null;
         this._manager = null;
         this._logger = null;
+        this._lastServers = null;
     }
 
     private _refresh(): void {
@@ -86,6 +101,7 @@ export default class SymfonyMenubarExtension extends Extension {
 
         manager.runCommand<SymfonyServer[]>('server:list')
             .then(servers => {
+                this._lastServers = servers;
                 indicator.updateServerStatus(servers);
             })
             .catch(err => {

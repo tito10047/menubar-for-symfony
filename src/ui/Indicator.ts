@@ -6,6 +6,7 @@ import Clutter from 'gi://Clutter';
 
 import { PhpVersionItem, PhpVersionItemType } from './components/PhpVersionItem.js';
 import { ServerMenuItem } from './components/ServerMenuItem.js';
+import { ServerRowItem } from './components/ServerRowItem.js';
 import { FavoriteServersGroup, FavoriteServersGroupType } from './components/FavoriteServersGroup.js';
 import { ProxyMenuItem, ProxyMenuItemType } from './components/ProxyMenuItem.js';
 import { createSectionHeader } from './components/SectionHeader.js';
@@ -19,6 +20,9 @@ import { FavoritesRepositoryInterface } from '../core/services/FavoritesReposito
 interface IndicatorParams {
     onRefresh?: () => void;
     favoritesRepository: FavoritesRepositoryInterface;
+    onStartServer: (directory: string) => void;
+    onStopServer: (directory: string) => void;
+    onOpenBrowser: (directory: string) => void;
 }
 
 export const Indicator = GObject.registerClass(
@@ -29,12 +33,18 @@ export const Indicator = GObject.registerClass(
         declare _proxyItem: ProxyMenuItemType;
         declare _favoritesRepository: FavoritesRepositoryInterface;
         declare _onRefresh: (() => void) | undefined;
+        declare _onStartServer: (directory: string) => void;
+        declare _onStopServer: (directory: string) => void;
+        declare _onOpenBrowser: (directory: string) => void;
 
         _init(params: IndicatorParams) {
             super._init(0.0, 'Symfony Menubar', false);
 
             this._favoritesRepository = params.favoritesRepository;
             this._onRefresh = params.onRefresh;
+            this._onStartServer = params.onStartServer;
+            this._onStopServer = params.onStopServer;
+            this._onOpenBrowser = params.onOpenBrowser;
 
             const topLabel = new St.Label({
                 text: 'sf',
@@ -95,25 +105,39 @@ export const Indicator = GObject.registerClass(
             for (const server of servers) {
                 const isFav = this._favoritesRepository.isFavorite(server.directory);
                 const name = server.directory.split('/').pop() ?? server.directory;
-                const item = new ServerMenuItem({
-                    directory: server.directory,
-                    name,
-                    port: server.isRunning ? String(server.port) : '',
-                    isRunning: server.isRunning,
-                    isFavorite: isFav,
-                    onToggleFavorite: (dir) => {
-                        if (this._favoritesRepository.isFavorite(dir)) {
-                            this._favoritesRepository.remove(dir);
-                        } else {
-                            this._favoritesRepository.add(dir);
-                        }
-                        this._onRefresh?.();
-                    },
-                });
+                const port = server.isRunning ? String(server.port) : '';
+
+                const onToggleFavorite = (dir: string) => {
+                    if (this._favoritesRepository.isFavorite(dir)) {
+                        this._favoritesRepository.remove(dir);
+                    } else {
+                        this._favoritesRepository.add(dir);
+                    }
+                    this._onRefresh?.();
+                };
 
                 if (isFav) {
+                    const item = new ServerMenuItem({
+                        directory: server.directory,
+                        name,
+                        port,
+                        isRunning: server.isRunning,
+                        isFavorite: true,
+                        onToggleFavorite,
+                    });
                     this._serverSection.addMenuItem(item);
                 } else {
+                    const item = new ServerRowItem({
+                        directory: server.directory,
+                        name,
+                        port,
+                        isRunning: server.isRunning,
+                        isFavorite: false,
+                        onStart: this._onStartServer,
+                        onStop: this._onStopServer,
+                        onOpenBrowser: this._onOpenBrowser,
+                        onToggleFavorite,
+                    });
                     this._otherServersGroup.addServer(server.directory, item);
                 }
             }
