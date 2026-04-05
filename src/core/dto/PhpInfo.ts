@@ -1,6 +1,12 @@
+export enum PhpExtensionStatus {
+    NOT_INSTALLED = 'not_installed',
+    INSTALLED     = 'installed',
+    ENABLED       = 'enabled',
+}
+
 export interface PhpInfo {
     phpIniPath: string;
-    hasXdebug: boolean;
-    hasApcu: boolean;
-    hasOpcache: boolean;
+    xdebug:    PhpExtensionStatus;
+    apcu:      PhpExtensionStatus;
+    opcache:   PhpExtensionStatus;
 }

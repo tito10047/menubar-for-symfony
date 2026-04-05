@@ -15,7 +15,8 @@ import GObject from "gi://GObject";
 import St from "gi://St";
 import Clutter from "gi://Clutter";
 import { PopupBaseMenuItem } from "resource:///org/gnome/shell/ui/popupMenu.js";
-var BADGE_STYLE = "font-size: 10px; background-color: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 8px;";
+var BADGE_STYLE_ENABLED = "font-size: 10px; background-color: rgba(74, 222, 128, 0.20); color: #4ade80; padding: 2px 6px; border-radius: 4px; margin-right: 8px;";
+var BADGE_STYLE_INSTALLED = "font-size: 10px; background-color: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); padding: 2px 6px; border-radius: 4px; margin-right: 8px;";
 var PhpVersionItem = GObject.registerClass(
   class PhpVersionItem2 extends PopupBaseMenuItem {
     _init(params = {}) {
@@ -47,25 +48,30 @@ var PhpVersionItem = GObject.registerClass(
     }
     /**
      * Destroys all existing badge actors and re-populates from PhpInfo.
-     * Badges are shown only for extensions that are actually enabled.
+     * - ENABLED extensions get a green badge
+     * - INSTALLED (but not enabled) extensions get a muted badge
+     * - NOT_INSTALLED extensions produce no badge
      */
     updateBadges(info) {
       this._badgeContainer.destroy_all_children();
-      if (info.hasOpcache) {
-        this._badgeContainer.add_child(
-          new St.Label({ text: "OPcache", style: BADGE_STYLE })
-        );
+      const entries = [
+        [info.opcache, "OPcache"],
+        [info.xdebug, "Xdebug"],
+        [info.apcu, "APCu"]
+      ];
+      for (const [status, label] of entries) {
+        const badge = this._makeBadge(label, status);
+        if (badge) this._badgeContainer.add_child(badge);
       }
-      if (info.hasXdebug) {
-        this._badgeContainer.add_child(
-          new St.Label({ text: "Xdebug", style: BADGE_STYLE })
-        );
+    }
+    _makeBadge(label, status) {
+      if (status === "enabled" /* ENABLED */) {
+        return new St.Label({ text: label, style: BADGE_STYLE_ENABLED });
       }
-      if (info.hasApcu) {
-        this._badgeContainer.add_child(
-          new St.Label({ text: "APCu", style: BADGE_STYLE })
-        );
+      if (status === "installed" /* INSTALLED */) {
+        return new St.Label({ text: label, style: BADGE_STYLE_INSTALLED });
       }
+      return null;
     }
   }
 );
@@ -854,6 +860,7 @@ var WhichSymfonyCommand = class {
 };
 
 // src/core/commands/PhpInfoCommand.ts
+var EXTENSION_STATUS_SCRIPT = `$dir = ini_get('extension_dir'); $loaded = array_map('strtolower', get_loaded_extensions()); foreach(['xdebug','apcu','opcache'] as $e) { $inst = file_exists($dir.'/'.$e.'.so') ? 1 : 0; $enab = in_array($e, $loaded) ? 1 : 0; echo $e.':'.$inst.':'.$enab.PHP_EOL; }`;
 var PhpInfoCommand = class {
   constructor(processRunner) {
     this.processRunner = processRunner;
@@ -872,24 +879,30 @@ var PhpInfoCommand = class {
     if (phpBin.match(/^\d+\.\d+/)) {
       this.logger?.warn(`PhpInfoCommand received version ${phpBin} instead of path. Trying to use it as is.`);
     }
-    const runArgsIni = [phpBin, "--ini"];
-    const runArgsM = [phpBin, "-m"];
     this.logger?.info(`Executing command ${commandName} using binary: ${phpBin}`);
     try {
-      const iniOutput = await this.processRunner.run(runArgsIni);
-      const modulesOutput = await this.processRunner.run(runArgsM);
+      const iniOutput = await this.processRunner.run([phpBin, "--ini"]);
+      const extensionOutput = await this.processRunner.run([phpBin, "-r", EXTENSION_STATUS_SCRIPT]);
       const phpIniPath = this.parseIniPath(iniOutput);
-      const modules = modulesOutput.toLowerCase();
       return {
         phpIniPath,
-        hasXdebug: modules.includes("xdebug"),
-        hasApcu: modules.includes("apcu"),
-        hasOpcache: modules.includes("opcache")
+        xdebug: this.parseExtensionStatus("xdebug", extensionOutput),
+        apcu: this.parseExtensionStatus("apcu", extensionOutput),
+        opcache: this.parseExtensionStatus("opcache", extensionOutput)
       };
     } catch (error) {
       this.logger?.error(`Command ${commandName} failed`, error);
       throw error;
     }
+  }
+  parseExtensionStatus(name, output) {
+    const match = output.match(new RegExp(`^${name}:(\\d):(\\d)`, "m"));
+    if (!match) return "not_installed" /* NOT_INSTALLED */;
+    const enabled = match[2] === "1";
+    const installed = match[1] === "1";
+    if (enabled) return "enabled" /* ENABLED */;
+    if (installed) return "installed" /* INSTALLED */;
+    return "not_installed" /* NOT_INSTALLED */;
   }
   parseIniPath(output) {
     const loadedMatch = output.match(/Loaded Configuration File:\s+(.+)/);

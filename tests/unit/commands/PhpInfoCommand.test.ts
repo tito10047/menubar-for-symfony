@@ -1,4 +1,5 @@
 import { PhpInfoCommand } from '../../../src/core/commands/PhpInfoCommand';
+import { PhpExtensionStatus } from '../../../src/core/dto/PhpInfo';
 import { ProcessRunnerInterface } from '../../../src/core/interfaces/ProcessRunnerInterface';
 import { LoggerInterface } from '../../../src/core/interfaces/LoggerInterface';
 
@@ -25,34 +26,30 @@ describe('PhpInfoCommand', () => {
         expect(command.getName()).toBe('php:info');
     });
 
-    it('should parse php --ini and php -m output when called without arguments', async () => {
+    it('should parse php --ini and php -r output when called without arguments', async () => {
         const iniOutput = `
 Configuration File (php.ini) Path: /etc/php/8.3/cli
 Loaded Configuration File:         /etc/php/8.3/cli/php.ini
 Scan for additional .ini files in: /etc/php/8.3/cli/conf.d
 `;
-        const modulesOutput = `
-[PHP Modules]
-apcu
-Zend OPcache
-[Zend Modules]
-Xdebug
-`;
+        const extensionOutput = `xdebug:1:1\napcu:1:1\nopcache:0:0\n`;
 
         mockProcessRunner.run
             .mockResolvedValueOnce(iniOutput)
-            .mockResolvedValueOnce(modulesOutput);
+            .mockResolvedValueOnce(extensionOutput);
 
         const result = await command.execute();
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '--ini']);
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '-m']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(
+            expect.arrayContaining(['php', '-r', expect.any(String)])
+        );
 
         expect(result).toEqual({
             phpIniPath: '/etc/php/8.3/cli/php.ini',
-            hasXdebug: true,
-            hasApcu: true,
-            hasOpcache: true
+            xdebug:  PhpExtensionStatus.ENABLED,
+            apcu:    PhpExtensionStatus.ENABLED,
+            opcache: PhpExtensionStatus.NOT_INSTALLED,
         });
     });
 
@@ -63,7 +60,9 @@ Xdebug
         await command.execute([phpPath]);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith([phpPath, '--ini']);
-        expect(mockProcessRunner.run).toHaveBeenCalledWith([phpPath, '-m']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(
+            expect.arrayContaining([phpPath, '-r', expect.any(String)])
+        );
     });
 
     it('should use specific php version binary (like /usr/bin/php8.3) if passed as path', async () => {
@@ -73,7 +72,9 @@ Xdebug
         await command.execute([phpBin]);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith([phpBin, '--ini']);
-        expect(mockProcessRunner.run).toHaveBeenCalledWith([phpBin, '-m']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(
+            expect.arrayContaining([phpBin, '-r', expect.any(String)])
+        );
     });
 
     it('should log warning if version string is passed instead of path', async () => {
@@ -92,35 +93,78 @@ Xdebug
         await command.execute(['']);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '--ini']);
-        expect(mockProcessRunner.run).toHaveBeenCalledWith(['php', '-m']);
+        expect(mockProcessRunner.run).toHaveBeenCalledWith(
+            expect.arrayContaining(['php', '-r', expect.any(String)])
+        );
     });
 
     it('should handle missing modules and different ini path format', async () => {
-        const phpPath = 'php';
         const iniOutput = `
 Configuration File (php.ini) Path: /usr/local/etc/php/7.4
 Loaded Configuration File:         (none)
 Scan for additional .ini files in: /usr/local/etc/php/7.4/conf.d
 `;
-        const modulesOutput = `
-[PHP Modules]
-Core
-date
-pcre
-`;
+        const extensionOutput = `xdebug:0:0\napcu:0:0\nopcache:0:0\n`;
 
         mockProcessRunner.run
             .mockResolvedValueOnce(iniOutput)
-            .mockResolvedValueOnce(modulesOutput);
+            .mockResolvedValueOnce(extensionOutput);
 
-        const result = await command.execute([phpPath]);
+        const result = await command.execute(['php']);
 
         expect(result).toEqual({
             phpIniPath: '/usr/local/etc/php/7.4', // falls back to path if loaded file is (none)
-            hasXdebug: false,
-            hasApcu: false,
-            hasOpcache: false
+            xdebug:  PhpExtensionStatus.NOT_INSTALLED,
+            apcu:    PhpExtensionStatus.NOT_INSTALLED,
+            opcache: PhpExtensionStatus.NOT_INSTALLED,
         });
     });
 
+    it('should return INSTALLED when extension .so exists but is not loaded', async () => {
+        mockProcessRunner.run
+            .mockResolvedValueOnce('Loaded Configuration File: /etc/php.ini\n')
+            .mockResolvedValueOnce('xdebug:1:0\napcu:0:0\nopcache:1:0\n');
+
+        const result = await command.execute();
+
+        expect(result.xdebug).toBe(PhpExtensionStatus.INSTALLED);
+        expect(result.apcu).toBe(PhpExtensionStatus.NOT_INSTALLED);
+        expect(result.opcache).toBe(PhpExtensionStatus.INSTALLED);
+    });
+
+    it('should return ENABLED when extension .so exists and is loaded', async () => {
+        mockProcessRunner.run
+            .mockResolvedValueOnce('Loaded Configuration File: /etc/php.ini\n')
+            .mockResolvedValueOnce('xdebug:1:1\napcu:1:1\nopcache:1:1\n');
+
+        const result = await command.execute();
+
+        expect(result.xdebug).toBe(PhpExtensionStatus.ENABLED);
+        expect(result.apcu).toBe(PhpExtensionStatus.ENABLED);
+        expect(result.opcache).toBe(PhpExtensionStatus.ENABLED);
+    });
+
+    it('should return NOT_INSTALLED for all extensions when output is empty', async () => {
+        mockProcessRunner.run
+            .mockResolvedValueOnce('Loaded Configuration File: /etc/php.ini\n')
+            .mockResolvedValueOnce('');
+
+        const result = await command.execute();
+
+        expect(result.xdebug).toBe(PhpExtensionStatus.NOT_INSTALLED);
+        expect(result.apcu).toBe(PhpExtensionStatus.NOT_INSTALLED);
+        expect(result.opcache).toBe(PhpExtensionStatus.NOT_INSTALLED);
+    });
+
+    it('should handle mixed states in the same output', async () => {
+        mockProcessRunner.run
+            .mockResolvedValueOnce('Loaded Configuration File: /etc/php.ini\n')
+            .mockResolvedValueOnce('xdebug:1:0\napcu:1:1\nopcache:0:0\n');
+
+        const result = await command.execute();
+
+        expect(result.xdebug).toBe(PhpExtensionStatus.INSTALLED);
+        expect(result.apcu).toBe(PhpExtensionStatus.ENABLED);
+        expect(result.opcache).toBe(PhpExtensionStatus.NOT_INSTALLED);
+    });
 });

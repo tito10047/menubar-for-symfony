@@ -1,5 +1,6 @@
 import { NodeProcessRunner } from '../../helpers/NodeProcessRunner';
 import { PhpInfoCommand } from '../../../src/core/commands/PhpInfoCommand';
+import { PhpExtensionStatus } from '../../../src/core/dto/PhpInfo';
 import { execSync } from 'child_process';
 
 describe('PhpInfoCommand Integration', () => {
@@ -31,12 +32,14 @@ describe('PhpInfoCommand Integration', () => {
 
         const result = await command.execute([phpPath]); // Pass real PHP path to test parsing logic
 
+        const validStatuses = Object.values(PhpExtensionStatus);
+
         expect(result).toBeDefined();
         expect(typeof result.phpIniPath).toBe('string');
         expect(result.phpIniPath.length).toBeGreaterThan(0);
-        expect(typeof result.hasXdebug).toBe('boolean');
-        expect(typeof result.hasApcu).toBe('boolean');
-        expect(typeof result.hasOpcache).toBe('boolean');
+        expect(validStatuses).toContain(result.xdebug);
+        expect(validStatuses).toContain(result.apcu);
+        expect(validStatuses).toContain(result.opcache);
     });
 
     it('should fetch real PHP info for specific version (e.g. PHP 8.3) if available', async () => {
@@ -57,8 +60,10 @@ describe('PhpInfoCommand Integration', () => {
 
         const result = await command.execute([php83Path]);
 
+        const validStatuses = Object.values(PhpExtensionStatus);
+
         expect(result).toBeDefined();
         expect(result.phpIniPath).toContain('php83');
-        expect(typeof result.hasXdebug).toBe('boolean');
+        expect(validStatuses).toContain(result.xdebug);
     });
 });
