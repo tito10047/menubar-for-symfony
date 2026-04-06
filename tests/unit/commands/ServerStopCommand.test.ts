@@ -28,7 +28,7 @@ describe('ServerStopCommand', () => {
     it('should return true if server was stopped', async () => {
         mockProcessRunner.run.mockResolvedValue('The web server has been stopped');
 
-        const result = await command.execute(['--dir', '/path/to/project']);
+        const result = await command.execute(['/path/to/project']);
 
         expect(mockProcessRunner.run).toHaveBeenCalledWith(['server:stop', '--dir', '/path/to/project']);
         expect(result).toBe(true);

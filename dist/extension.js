@@ -1,5 +1,5 @@
 // src/extension.ts
-import GLib from "gi://GLib";
+import GLib2 from "gi://GLib";
 import Gio2 from "gi://Gio";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
@@ -79,6 +79,7 @@ var PhpVersionItem = GObject.registerClass(
 
 // src/ui/components/ServerMenuItem.ts
 import GObject2 from "gi://GObject";
+import GLib from "gi://GLib";
 import St2 from "gi://St";
 import Clutter2 from "gi://Clutter";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
@@ -112,7 +113,10 @@ var ServerMenuItem = GObject2.registerClass(
     updateStatus(isRunning) {
       this._isRunning = isRunning;
       this._applyDotColor(isRunning);
-      this._rebuildActions();
+      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        this._rebuildActions();
+        return GLib.SOURCE_REMOVE;
+      });
     }
     updatePort(port) {
       this._setPort(port);
@@ -828,7 +832,7 @@ var ServerStartCommand = class {
     const commandName = this.getName();
     this.logger?.info(`Executing command ${commandName}`);
     try {
-      const commandArgs = ["server:start", "-d", ...args];
+      const commandArgs = args.length > 0 ? ["server:start", "-d", "--dir", args[0]] : ["server:start", "-d"];
       const output = await this.processRunner.run(commandArgs);
       const lowerOutput = output.toLowerCase();
       const success = lowerOutput.includes("listening") || lowerOutput.includes("already running");
@@ -860,7 +864,7 @@ var ServerStopCommand = class {
     const commandName = this.getName();
     this.logger?.info(`Executing command ${commandName}`);
     try {
-      const commandArgs = ["server:stop", ...args];
+      const commandArgs = args.length > 0 ? ["server:stop", "--dir", args[0]] : ["server:stop"];
       const output = await this.processRunner.run(commandArgs);
       const lowerOutput = output.toLowerCase();
       const success = lowerOutput.includes("stopped") || lowerOutput.includes("no web server is running");
@@ -1221,7 +1225,10 @@ var SymfonyMenubarExtension = class extends Extension {
   }
   _handleStartServer(dir) {
     const original = this._lastServers?.find((s) => s.directory === dir);
-    if (!original) return;
+    if (!original) {
+      this._logger?.error(`Server start requested for unknown directory: ${dir}`);
+      return;
+    }
     this._indicator?.updateServerItem(dir, { isRunning: true, port: "" });
     this._cancelPoll(dir);
     this._manager?.runCommand("server:start", [dir]).catch((err) => this._logger?.error(`server:start failed for ${dir}:`, err));
@@ -1229,7 +1236,10 @@ var SymfonyMenubarExtension = class extends Extension {
   }
   _handleStopServer(dir) {
     const original = this._lastServers?.find((s) => s.directory === dir);
-    if (!original) return;
+    if (!original) {
+      this._logger?.error(`Server start requested for unknown directory: ${dir}`);
+      return;
+    }
     this._indicator?.updateServerItem(dir, { isRunning: false, port: "" });
     this._cancelPoll(dir);
     this._manager?.runCommand("server:stop", [dir]).catch((err) => this._logger?.error(`server:stop failed for ${dir}:`, err));
@@ -1238,16 +1248,16 @@ var SymfonyMenubarExtension = class extends Extension {
   _startPolling(dir, desiredState, original) {
     const pollInterval = this._settings?.get_int("polling-interval") ?? 5;
     const timeout = this._settings?.get_int("status-check-timeout") ?? 20;
-    const tickTimerId = GLib.timeout_add_seconds(
-      GLib.PRIORITY_DEFAULT,
+    const tickTimerId = GLib2.timeout_add_seconds(
+      GLib2.PRIORITY_DEFAULT,
       pollInterval,
       () => {
         this._doPollTick(dir, desiredState);
-        return GLib.SOURCE_CONTINUE;
+        return GLib2.SOURCE_CONTINUE;
       }
     );
-    const timeoutTimerId = GLib.timeout_add_seconds(
-      GLib.PRIORITY_DEFAULT,
+    const timeoutTimerId = GLib2.timeout_add_seconds(
+      GLib2.PRIORITY_DEFAULT,
       timeout,
       () => {
         this._logger?.warn(`Poll timeout for ${dir}: reverting optimistic state`);
@@ -1256,7 +1266,7 @@ var SymfonyMenubarExtension = class extends Extension {
           isRunning: original.isRunning,
           port: original.isRunning ? String(original.port) : ""
         });
-        return GLib.SOURCE_REMOVE;
+        return GLib2.SOURCE_REMOVE;
       }
     );
     this._pollMap.set(dir, { desiredState, originalServer: original, tickTimerId, timeoutTimerId });
@@ -1281,8 +1291,8 @@ var SymfonyMenubarExtension = class extends Extension {
   _cancelPoll(dir) {
     const state = this._pollMap.get(dir);
     if (!state) return;
-    GLib.Source.remove(state.tickTimerId);
-    GLib.Source.remove(state.timeoutTimerId);
+    GLib2.Source.remove(state.tickTimerId);
+    GLib2.Source.remove(state.timeoutTimerId);
     this._pollMap.delete(dir);
   }
   _refresh() {

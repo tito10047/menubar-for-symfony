@@ -20,7 +20,9 @@ export class ServerStopCommand implements SymfonyCommandInterface<boolean> {
         this.logger?.info(`Executing command ${commandName}`);
 
         try {
-            const commandArgs = ['server:stop', ...args];
+            const commandArgs = args.length > 0
+                ? ['server:stop', '--dir', args[0]]
+                : ['server:stop'];
             const output = await this.processRunner.run(commandArgs);
             const lowerOutput = output.toLowerCase();
             

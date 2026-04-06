@@ -29,7 +29,7 @@ describe('ServerStopCommand Integration', () => {
 
         if (symfonyPath) {
             const startCmd = new ServerStartCommand(runner);
-            await startCmd.execute(['-d', '--dir', tempDir]);
+            await startCmd.execute([tempDir]);
             // Wait for it to start
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
@@ -55,7 +55,7 @@ describe('ServerStopCommand Integration', () => {
         const listCmd = new ServerListCommand(runner);
 
         // Stop server
-        const result = await stopCmd.execute(['--dir', tempDir]);
+        const result = await stopCmd.execute([tempDir]);
         expect(result).toBe(true);
 
         // Wait for it to stop

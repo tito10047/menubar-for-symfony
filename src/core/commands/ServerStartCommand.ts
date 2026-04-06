@@ -20,7 +20,9 @@ export class ServerStartCommand implements SymfonyCommandInterface<boolean> {
         this.logger?.info(`Executing command ${commandName}`);
 
         try {
-            const commandArgs = ['server:start', '-d', ...args];
+            const commandArgs = args.length > 0
+                ? ['server:start', '-d', '--dir', args[0]]
+                : ['server:start', '-d'];
             const output = await this.processRunner.run(commandArgs);
             const lowerOutput = output.toLowerCase();
             

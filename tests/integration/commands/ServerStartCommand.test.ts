@@ -33,7 +33,7 @@ describe('ServerStartCommand Integration', () => {
             if (symfonyPath) {
                 const stopCmd = new ServerStopCommand(runner);
                 try {
-                    await stopCmd.execute(['--dir', tempDir]);
+                    await stopCmd.execute([tempDir]);
                 } catch (e) {
                     // ignore
                 }
@@ -56,7 +56,7 @@ describe('ServerStartCommand Integration', () => {
         const listCmd = new ServerListCommand(runner);
 
         // Start server
-        const result = await startCmd.execute(['-d', '--dir', tempDir]);
+        const result = await startCmd.execute([tempDir]);
         expect(result).toBe(true);
 
         // Wait for it to register

@@ -1,4 +1,5 @@
 import GObject from 'gi://GObject';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -61,7 +62,10 @@ const ServerMenuItem = GObject.registerClass(
         updateStatus(isRunning: boolean): void {
             this._isRunning = isRunning;
             this._applyDotColor(isRunning);
-            this._rebuildActions();
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._rebuildActions();
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         updatePort(port: string): void {
