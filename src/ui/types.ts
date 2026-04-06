@@ -1,7 +1,7 @@
-import { PhpVersion } from '../core/commands/PhpListCommand';
+import { PhpVersion } from '../core/dto/PhpVersion';
 import { PhpInfo } from '../core/dto/PhpInfo';
-import { SymfonyServer } from '../core/commands/ServerListCommand';
-import { ProxyStatus } from '../core/commands/ProxyStatusCommand';
+import { SymfonyServer } from '../core/dto/SymfonyServer';
+import { ProxyStatus } from '../core/dto/ProxyStatus';
 
 export interface ExtensionRef {
     openPreferences(): void;

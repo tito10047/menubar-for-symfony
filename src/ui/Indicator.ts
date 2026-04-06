@@ -4,18 +4,19 @@ import { PopupSeparatorMenuItem, PopupMenuSection, PopupImageMenuItem } from 're
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
-import { PhpVersionItem, PhpVersionItemType } from './components/PhpVersionItem.js';
-import { ServerMenuItem, ServerMenuItemType } from './components/ServerMenuItem.js';
-import { ServerRowItem, ServerRowItemType } from './components/ServerRowItem.js';
+import { PhpVersionItem } from './components/PhpVersionItem.js';
+import { ServerMenuItem } from './components/ServerMenuItem.js';
+import { ServerRowItem } from './components/ServerRowItem.js';
 import { FavoriteServersGroup, FavoriteServersGroupType } from './components/FavoriteServersGroup.js';
 import { ProxyMenuItem, ProxyMenuItemType } from './components/ProxyMenuItem.js';
 import { createSectionHeader } from './components/SectionHeader.js';
 
-import { PhpVersion } from '../core/commands/PhpListCommand.js';
+import { PhpVersion } from '../core/dto/PhpVersion.js';
 import { PhpInfo } from '../core/dto/PhpInfo.js';
-import { SymfonyServer } from '../core/commands/ServerListCommand.js';
-import { ProxyStatus } from '../core/commands/ProxyStatusCommand.js';
+import { SymfonyServer } from '../core/dto/SymfonyServer.js';
+import { ProxyStatus } from '../core/dto/ProxyStatus.js';
 import { FavoritesRepositoryInterface } from '../core/services/FavoritesRepository.js';
+import { ServerItemInterface } from './components/ServerItemInterface.js';
 
 interface IndicatorParams {
     onRefresh?: () => void;
@@ -41,7 +42,7 @@ export const Indicator = GObject.registerClass(
         declare _onStartServer: (directory: string) => void;
         declare _onStopServer: (directory: string) => void;
         declare _onOpenBrowser: (directory: string) => void;
-        declare _serverItemMap: Map<string, ServerMenuItemType | ServerRowItemType>;
+        declare _serverItemMap: Map<string, ServerItemInterface>;
 
         _init(params: IndicatorParams) {
             super._init(0.0, 'Symfony Menubar', false);
@@ -125,17 +126,8 @@ export const Indicator = GObject.registerClass(
 
             for (const server of servers) {
                 const isFav = this._favoritesRepository.isFavorite(server.directory);
-                const name = server.directory.split('/').pop() ?? server.directory;
+                const name = this._serverName(server.directory);
                 const port = server.isRunning ? String(server.port) : '';
-
-                const onToggleFavorite = (dir: string) => {
-                    if (this._favoritesRepository.isFavorite(dir)) {
-                        this._favoritesRepository.remove(dir);
-                    } else {
-                        this._favoritesRepository.add(dir);
-                    }
-                    this._onRefresh?.();
-                };
 
                 if (isFav) {
                     const item = new ServerMenuItem({
@@ -144,7 +136,7 @@ export const Indicator = GObject.registerClass(
                         port,
                         isRunning: server.isRunning,
                         isFavorite: true,
-                        onToggleFavorite,
+                        onToggleFavorite: (dir) => this._toggleFavorite(dir),
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
@@ -161,12 +153,25 @@ export const Indicator = GObject.registerClass(
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
-                        onToggleFavorite,
+                        onToggleFavorite: (dir) => this._toggleFavorite(dir),
                     });
                     this._otherServersGroup.addServer(server.directory, item);
                     this._serverItemMap.set(server.directory, item);
                 }
             }
+        }
+
+        _serverName(directory: string): string {
+            return directory.split('/').pop() ?? directory;
+        }
+
+        _toggleFavorite(directory: string): void {
+            if (this._favoritesRepository.isFavorite(directory)) {
+                this._favoritesRepository.remove(directory);
+            } else {
+                this._favoritesRepository.add(directory);
+            }
+            this._onRefresh?.();
         }
 
         /**

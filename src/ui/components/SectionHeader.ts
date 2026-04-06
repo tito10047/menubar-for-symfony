@@ -5,7 +5,7 @@ import { PopupBaseMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 /**
  * Returns a non-interactive, visually distinct section divider row.
  * The label text is uppercased unconditionally.
- * Pass `options.onRefresh` to include a refresh button with hover effect and cursor change.
+ * Pass `options.onRefresh` to include a refresh button; hover effect is handled via CSS.
  */
 export function createSectionHeader(
     text: string,
@@ -14,7 +14,7 @@ export function createSectionHeader(
     const header = new PopupBaseMenuItem({ reactive: false });
     const label = new St.Label({
         text: text.toUpperCase(),
-        style: 'font-size: 11px; font-weight: bold; color: rgba(255, 255, 255, 0.4); padding-top: 5px; padding-bottom: 2px;',
+        style_class: 'section-header-label',
         x_expand: true,
     });
     label.clutter_text.ellipsize = 0;
@@ -24,20 +24,14 @@ export function createSectionHeader(
         const icon = new St.Icon({
             icon_name: 'view-refresh-symbolic',
             icon_size: 14,
-            style: 'color: rgba(255,255,255,0.5);',
+            style_class: 'section-header-icon',
             y_align: Clutter.ActorAlign.CENTER,
         });
         const btn = new St.Button({
             child: icon,
             reactive: true,
             track_hover: true,
-            style: 'padding: 0 4px; background: transparent; border: none;',
-        });
-
-        btn.connect('notify::hover', () => {
-            icon.set_style(btn.hover
-                ? 'color: rgba(255,255,255,0.9);'
-                : 'color: rgba(255,255,255,0.5);');
+            style_class: 'section-header-button',
         });
 
         btn.connect('clicked', options.onRefresh);

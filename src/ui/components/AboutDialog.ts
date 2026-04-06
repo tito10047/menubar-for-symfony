@@ -5,17 +5,18 @@ import { MessageDialogContent } from 'resource:///org/gnome/shell/ui/dialog.js';
 
 const REPO_URL = 'https://github.com/tito10047/symfony-cli-menubar';
 
-export function openAboutDialog(): void {
+export function openAboutDialog(version?: string): void {
     const dialog = new ModalDialog({ destroyOnClose: true });
 
+    const versionStr = version ?? '1';
     const content = new MessageDialogContent({
         title: 'Symfony CLI Menubar',
-        description: 'Manage your Symfony local servers from the GNOME top bar.\n\nAuthor: Jozef Môstka\nVersion: 1',
+        description: `Manage your Symfony local servers from the GNOME top bar.\n\nAuthor: Jozef Môstka\nVersion: ${versionStr}`,
     });
 
     const repoLabel = new St.Label({
         text: REPO_URL,
-        style: 'color: #78aeed; text-decoration: underline; margin-top: 8px;',
+        style_class: 'about-repo-link',
         reactive: true,
         track_hover: true,
     });

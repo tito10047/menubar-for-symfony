@@ -1,19 +1,14 @@
 import { SymfonyCommandInterface } from '../interfaces/SymfonyCommandInterface';
 import { ProcessRunnerInterface } from '../interfaces/ProcessRunnerInterface';
 import { LoggerInterface } from '../interfaces/LoggerInterface';
+import { SymfonyProxy, ProxyStatus } from '../dto/ProxyStatus';
+import { ProxyStatusParser } from '../parsers/ProxyStatusParser';
 
-export interface SymfonyProxy {
-    domain: string;
-    directory: string;
-}
-
-export interface ProxyStatus {
-    isRunning: boolean;
-    proxies: SymfonyProxy[];
-}
+export type { SymfonyProxy, ProxyStatus };
 
 export class ProxyStatusCommand implements SymfonyCommandInterface<ProxyStatus> {
     private logger?: LoggerInterface;
+    private parser = new ProxyStatusParser();
 
     constructor(private processRunner: ProcessRunnerInterface) {}
 
@@ -30,57 +25,8 @@ export class ProxyStatusCommand implements SymfonyCommandInterface<ProxyStatus> 
         this.logger?.info(`Executing command ${commandName}`);
 
         try {
-            const commandArgs = ['proxy:status', '--no-ansi', ...args];
-            const output = await this.processRunner.run(commandArgs);
-            
-            if (!output || output.trim() === '') {
-                this.logger?.warn(`Empty output from ${commandName}`);
-            }
-
-            const lines = output.split('\n');
-            let isRunning = false;
-
-            // Explicit "Not Running" check — only in header section (before the server table)
-            const headerLines = lines.slice(0, 5).join('\n').toLowerCase();
-            if (headerLines.includes('not running')) {
-                return { isRunning: false, proxies: [] };
-            }
-
-            // Check first few lines for running indicators
-            for (let i = 0; i < Math.min(lines.length, 10); i++) {
-                const line = lines[i].toLowerCase();
-                if (line.includes('listening') || line.includes('proxy is running')) {
-                    isRunning = true;
-                    break;
-                }
-            }
-
-            const proxies: SymfonyProxy[] = [];
-            
-            const domainRegex = /([a-zA-Z0-9.\-]+\.wip)/;
-            const pathRegex = /([~/][^\s|│]+)/;
-
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('+') || trimmed.startsWith('-') ||
-                    trimmed.startsWith('┌') || trimmed.startsWith('└') || trimmed.startsWith('├') ||
-                    trimmed.includes('Domain') || trimmed.includes('Directory')) {
-                    continue;
-                }
-
-                const domainMatch = trimmed.match(domainRegex);
-                if (domainMatch) {
-                    const domain = domainMatch[1];
-                    const pathMatch = trimmed.match(pathRegex);
-                    const directory = pathMatch ? pathMatch[1] : '';
-
-                    if (!proxies.find(p => p.domain === domain)) {
-                        proxies.push({ domain, directory });
-                    }
-                }
-            }
-
-            return { isRunning, proxies };
+            const output = await this.processRunner.run(['proxy:status', '--no-ansi', ...args]);
+            return this.parser.parse(output);
         } catch (error) {
             this.logger?.error(`Command ${commandName} failed`, error);
             throw error;

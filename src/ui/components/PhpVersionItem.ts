@@ -4,18 +4,6 @@ import Clutter from 'gi://Clutter';
 import { PopupBaseMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { PhpInfo, PhpExtensionStatus } from '../../core/dto/PhpInfo.js';
 
-const BADGE_STYLE_ENABLED =
-    'font-size: 10px; ' +
-    'background-color: rgba(74, 222, 128, 0.20); ' +
-    'color: #4ade80; ' +
-    'padding: 2px 6px; border-radius: 4px; margin-right: 8px;';
-
-const BADGE_STYLE_INSTALLED =
-    'font-size: 10px; ' +
-    'background-color: rgba(255,255,255,0.06); ' +
-    'color: rgba(255,255,255,0.35); ' +
-    'padding: 2px 6px; border-radius: 4px; margin-right: 8px;';
-
 interface PhpVersionItemParams {
     version?: string;
     isActive?: boolean;
@@ -39,7 +27,7 @@ const PhpVersionItem = GObject.registerClass(
             this._dot = new St.Icon({
                 icon_name: 'media-record-symbolic',
                 icon_size: 10,
-                style: 'color: #888888; margin-right: 6px;',
+                style_class: 'server-status-dot stopped',
             });
 
             this._versionLabel = new St.Label({ text: '—' });
@@ -62,7 +50,8 @@ const PhpVersionItem = GObject.registerClass(
         }
 
         updateStatus(isActive: boolean): void {
-            this._dot.set_style(`color: ${isActive ? '#4ade80' : '#888888'}; margin-right: 6px;`);
+            this._dot.remove_style_class_name(isActive ? 'stopped' : 'running');
+            this._dot.add_style_class_name(isActive ? 'running' : 'stopped');
         }
 
         /**
@@ -88,10 +77,10 @@ const PhpVersionItem = GObject.registerClass(
 
         private _makeBadge(label: string, status: PhpExtensionStatus): InstanceType<typeof St.Label> | null {
             if (status === PhpExtensionStatus.ENABLED) {
-                return new St.Label({ text: label, style: BADGE_STYLE_ENABLED });
+                return new St.Label({ text: label, style_class: 'php-badge enabled' });
             }
             if (status === PhpExtensionStatus.INSTALLED) {
-                return new St.Label({ text: label, style: BADGE_STYLE_INSTALLED });
+                return new St.Label({ text: label, style_class: 'php-badge installed' });
             }
             return null;
         }

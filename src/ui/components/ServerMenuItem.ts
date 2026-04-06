@@ -4,9 +4,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { PopupMenuItem, PopupImageMenuItem, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
-
-const RUNNING_COLOR = '#4ade80';
-const STOPPED_COLOR = '#888888';
+import { ServerItemInterface } from './ServerItemInterface.js';
 
 export interface ServerMenuItemParams {
     directory: string;
@@ -21,7 +19,7 @@ export interface ServerMenuItemParams {
 }
 
 const ServerMenuItem = GObject.registerClass(
-    class ServerMenuItem extends PopupMenu.PopupSubMenuMenuItem {
+    class ServerMenuItem extends PopupMenu.PopupSubMenuMenuItem implements ServerItemInterface {
         declare _dot: InstanceType<typeof St.Icon>;
         declare _portLabel: InstanceType<typeof St.Label> | null;
         declare _isRunning: boolean;
@@ -49,7 +47,7 @@ const ServerMenuItem = GObject.registerClass(
             this._dot = new St.Icon({
                 icon_name: 'media-record-symbolic',
                 icon_size: 10,
-                style: `color: ${STOPPED_COLOR}; margin-right: 6px;`,
+                style_class: 'server-status-dot stopped',
                 y_align: Clutter.ActorAlign.CENTER,
             });
             const labelIndex = this.get_children().indexOf(this.label);
@@ -76,7 +74,8 @@ const ServerMenuItem = GObject.registerClass(
         // ---- private helpers (GObject _ convention) ----
 
         _applyDotColor(isRunning: boolean): void {
-            this._dot.set_style(`color: ${isRunning ? RUNNING_COLOR : STOPPED_COLOR};`);
+            this._dot.remove_style_class_name(isRunning ? 'stopped' : 'running');
+            this._dot.add_style_class_name(isRunning ? 'running' : 'stopped');
         }
 
         /**
@@ -93,7 +92,7 @@ const ServerMenuItem = GObject.registerClass(
 
             this._portLabel = new St.Label({
                 text: `:${port}`,
-                style: 'color: rgba(255, 255, 255, 0.4); font-size: 12px; margin-right: 8px;',
+                style_class: 'server-port-label',
                 y_align: Clutter.ActorAlign.CENTER,
             });
             // Insert before the expand-arrow, which is always the last child.

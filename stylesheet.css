@@ -2,15 +2,61 @@
     min-width: 420px;
 }
 
-.php-badge-success {
-    background-color: #2ecc71;
-    color: white;
-    border-radius: 99px;
-    padding: 2px 8px;
-    font-size: 0.8em;
-    font-weight: bold;
-}
+/* ---- Status dots ---- */
+.server-status-dot { margin-right: 6px; }
+.server-status-dot.running { color: #4ade80; }
+.server-status-dot.stopped { color: #888888; }
+
+/* ---- Port label ---- */
 .server-port-label {
-    color: #888888;
-    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    margin-right: 8px;
+}
+
+/* ---- PHP badges ---- */
+.php-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+.php-badge.enabled {
+    background-color: rgba(74, 222, 128, 0.20);
+    color: #4ade80;
+}
+.php-badge.installed {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ---- Section header ---- */
+.section-header-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.4);
+    padding-top: 5px;
+    padding-bottom: 2px;
+}
+.section-header-button {
+    padding: 0 4px;
+    background: transparent;
+    border: none;
+}
+.section-header-icon { color: rgba(255, 255, 255, 0.5); }
+.section-header-button:hover .section-header-icon { color: rgba(255, 255, 255, 0.9); }
+
+/* ---- Inline action buttons (ServerRowItem) ---- */
+.server-action-button {
+    padding: 2px 4px;
+    background: transparent;
+    border: none;
+}
+.server-action-icon { color: rgba(255, 255, 255, 0.7); }
+
+/* ---- About dialog ---- */
+.about-repo-link {
+    color: #78aeed;
+    text-decoration: underline;
+    margin-top: 8px;
 }

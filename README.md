@@ -64,7 +64,7 @@ Fabien Potencier [@fabpot](https://github.com/fabpot) and Tugdual Saunier [@tuck
 
 Released by [Jozef  Môstka](https://vsetkosada.sk/en) under the [MIT License](LICENSE).
 
-This project is inspired by [Symfony CLI](https://github.com/smnandre/symfony-cli-menubar) by [@smnandre](https://github.com/smnandre).
+This project is inspired by [Symfony CLI Menu bar](https://github.com/smnandre/symfony-cli-menubar) by [@smnandre](https://github.com/smnandre).
 
 "Symfony" and the Symfony logo are registered trademarks of [Symfony SAS](https://symfony.com).  
 
