@@ -61,7 +61,7 @@ const ProxyMenuItem = GObject.registerClass(
         updateStatus(isRunning: boolean, _proxies: SymfonyProxy[]): void {
             this._dot.remove_style_class_name(isRunning ? 'stopped' : 'running');
             this._dot.add_style_class_name(isRunning ? 'running' : 'stopped');
-            this.label.set_text(isRunning ? 'Proxy: running' : 'Proxy: stopped');
+            this.label.set_text(isRunning ? 'Proxy' : 'Proxy');
 
             this._startItem.visible       = !isRunning;
             this._stopItem.visible        = isRunning;
