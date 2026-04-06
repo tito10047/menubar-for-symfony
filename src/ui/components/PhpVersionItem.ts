@@ -24,7 +24,7 @@ interface PhpVersionItemParams {
 
 const PhpVersionItem = GObject.registerClass(
     class PhpVersionItem extends PopupBaseMenuItem {
-        declare _dot: InstanceType<typeof St.Label>;
+        declare _dot: InstanceType<typeof St.Icon>;
         declare _versionLabel: InstanceType<typeof St.Label>;
         declare _badgeContainer: InstanceType<typeof St.BoxLayout>;
 
@@ -36,9 +36,10 @@ const PhpVersionItem = GObject.registerClass(
                 y_align: Clutter.ActorAlign.CENTER,
             });
 
-            this._dot = new St.Label({
-                text: '●  ',
-                style: 'color: #888888;',
+            this._dot = new St.Icon({
+                icon_name: 'media-record-symbolic',
+                icon_size: 10,
+                style: 'color: #888888; margin-right: 6px;',
             });
 
             this._versionLabel = new St.Label({ text: '—' });

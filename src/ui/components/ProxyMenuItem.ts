@@ -2,35 +2,36 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { PopupMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupImageMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const RUNNING_COLOR = '#4ade80';
 const STOPPED_COLOR = '#888888';
 
 const ProxyMenuItem = GObject.registerClass(
     class ProxyMenuItem extends PopupMenu.PopupSubMenuMenuItem {
-        declare _dot: InstanceType<typeof St.Label>;
-        declare _startItem: InstanceType<typeof PopupMenuItem>;
-        declare _stopItem: InstanceType<typeof PopupMenuItem>;
-        declare _restartItem: InstanceType<typeof PopupMenuItem>;
-        declare _openBrowserItem: InstanceType<typeof PopupMenuItem>;
+        declare _dot: InstanceType<typeof St.Icon>;
+        declare _startItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _stopItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _restartItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _openBrowserItem: InstanceType<typeof PopupImageMenuItem>;
 
         _init() {
             super._init('Proxy: stopped');
 
             // Status dot — inserted directly before the label.
-            this._dot = new St.Label({
-                text: '●  ',
-                style: `color: ${STOPPED_COLOR};`,
+            this._dot = new St.Icon({
+                icon_name: 'media-record-symbolic',
+                icon_size: 10,
+                style: `color: ${STOPPED_COLOR}; margin-right: 6px;`,
                 y_align: Clutter.ActorAlign.CENTER,
             });
             const labelIdx = this.get_children().indexOf(this.label);
             this.insert_child_at_index(this._dot, labelIdx !== -1 ? labelIdx : 1);
 
-            this._startItem      = new PopupMenuItem('▶️ Start');
-            this._stopItem       = new PopupMenuItem('⏹️ Stop');
-            this._restartItem    = new PopupMenuItem('🔄 Restart');
-            this._openBrowserItem = new PopupMenuItem('🌐 Open in browser');
+            this._startItem       = new PopupImageMenuItem('Start', 'media-playback-start-symbolic');
+            this._stopItem        = new PopupImageMenuItem('Stop', 'media-playback-stop-symbolic');
+            this._restartItem     = new PopupImageMenuItem('Restart', 'view-refresh-symbolic');
+            this._openBrowserItem = new PopupImageMenuItem('Open in browser', 'web-browser-symbolic');
 
             this.menu.addMenuItem(this._startItem);
             this.menu.addMenuItem(this._stopItem);

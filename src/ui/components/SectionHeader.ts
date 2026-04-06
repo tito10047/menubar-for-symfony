@@ -1,4 +1,5 @@
 import St from 'gi://St';
+import Clutter from 'gi://Clutter';
 import { PopupBaseMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 /**
@@ -20,19 +21,23 @@ export function createSectionHeader(
     header.add_child(label);
 
     if (options?.onRefresh) {
+        const icon = new St.Icon({
+            icon_name: 'view-refresh-symbolic',
+            icon_size: 14,
+            style: 'color: rgba(255,255,255,0.5);',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
         const btn = new St.Button({
-            label: '↺',
+            child: icon,
             reactive: true,
             track_hover: true,
-            style: 'font-size: 14px; color: rgba(255,255,255,0.5); padding: 0 4px;',
+            style: 'padding: 0 4px; background: transparent; border: none;',
         });
 
         btn.connect('notify::hover', () => {
-            if (btn.hover) {
-                btn.set_style('font-size: 14px; color: rgba(255,255,255,0.9); padding: 0 4px;');
-            } else {
-                btn.set_style('font-size: 14px; color: rgba(255,255,255,0.5); padding: 0 4px;');
-            }
+            icon.set_style(btn.hover
+                ? 'color: rgba(255,255,255,0.9);'
+                : 'color: rgba(255,255,255,0.5);');
         });
 
         btn.connect('clicked', options.onRefresh);

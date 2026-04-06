@@ -3,7 +3,7 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { PopupMenuItem, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupMenuItem, PopupImageMenuItem, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const RUNNING_COLOR = '#4ade80';
 const STOPPED_COLOR = '#888888';
@@ -22,7 +22,7 @@ export interface ServerMenuItemParams {
 
 const ServerMenuItem = GObject.registerClass(
     class ServerMenuItem extends PopupMenu.PopupSubMenuMenuItem {
-        declare _dot: InstanceType<typeof St.Label>;
+        declare _dot: InstanceType<typeof St.Icon>;
         declare _portLabel: InstanceType<typeof St.Label> | null;
         declare _isRunning: boolean;
         declare _isFavorite: boolean;
@@ -46,9 +46,10 @@ const ServerMenuItem = GObject.registerClass(
             this._portLabel = null;
 
             // Status dot — inserted directly before the name label.
-            this._dot = new St.Label({
-                text: '●  ',
-                style: `color: ${STOPPED_COLOR};`,
+            this._dot = new St.Icon({
+                icon_name: 'media-record-symbolic',
+                icon_size: 10,
+                style: `color: ${STOPPED_COLOR}; margin-right: 6px;`,
                 y_align: Clutter.ActorAlign.CENTER,
             });
             const labelIndex = this.get_children().indexOf(this.label);
@@ -108,26 +109,27 @@ const ServerMenuItem = GObject.registerClass(
             this.menu.removeAll();
 
             if (this._isRunning) {
-                const stopItem = new PopupMenuItem('⏹️ Stop server');
+                const stopItem = new PopupImageMenuItem('Stop server', 'media-playback-stop-symbolic');
                 stopItem.connect('activate', () => this._onStop?.(this._directory));
                 this.menu.addMenuItem(stopItem);
 
-                const browserItem = new PopupMenuItem('🌐 Open in browser');
+                const browserItem = new PopupImageMenuItem('Open in browser', 'web-browser-symbolic');
                 browserItem.connect('activate', () => this._onOpenBrowser?.(this._directory));
                 this.menu.addMenuItem(browserItem);
             } else {
-                const startItem = new PopupMenuItem('▶️ Start server');
+                const startItem = new PopupImageMenuItem('Start server', 'media-playback-start-symbolic');
                 startItem.connect('activate', () => this._onStart?.(this._directory));
                 this.menu.addMenuItem(startItem);
             }
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
-            this.menu.addMenuItem(new PopupMenuItem('📋 Copy URL'));
-            this.menu.addMenuItem(new PopupMenuItem('📄 View logs'));
+            this.menu.addMenuItem(new PopupImageMenuItem('Copy URL', 'edit-copy-symbolic'));
+            this.menu.addMenuItem(new PopupImageMenuItem('View logs', 'emblem-documents-symbolic'));
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
-            const label = this._isFavorite ? '⭐ Remove from favorites' : '☆ Add to favorites';
-            const favItem = new PopupMenuItem(label);
+            const favIcon = this._isFavorite ? 'starred-symbolic' : 'non-starred-symbolic';
+            const favLabel = this._isFavorite ? 'Remove from favorites' : 'Add to favorites';
+            const favItem = new PopupImageMenuItem(favLabel, favIcon);
             favItem.connect('activate', () => this._onToggleFavorite?.(this._directory));
             this.menu.addMenuItem(favItem);
         }

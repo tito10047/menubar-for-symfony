@@ -20,7 +20,7 @@ export interface ServerRowItemParams {
 
 const ServerRowItem = GObject.registerClass(
     class ServerRowItem extends PopupMenu.PopupBaseMenuItem {
-        declare _dot: InstanceType<typeof St.Label>;
+        declare _dot: InstanceType<typeof St.Icon>;
         declare _portLabel: InstanceType<typeof St.Label>;
         declare _startStopBtn: InstanceType<typeof St.Button>;
         declare _browserBtn: InstanceType<typeof St.Button>;
@@ -45,9 +45,10 @@ const ServerRowItem = GObject.registerClass(
             this._onToggleFavorite = params.onToggleFavorite;
 
             // Status dot
-            this._dot = new St.Label({
-                text: '● ',
-                style: `color: ${params.isRunning ? RUNNING_COLOR : STOPPED_COLOR};`,
+            this._dot = new St.Icon({
+                icon_name: 'media-record-symbolic',
+                icon_size: 10,
+                style: `color: ${params.isRunning ? RUNNING_COLOR : STOPPED_COLOR}; margin-right: 4px;`,
                 y_align: Clutter.ActorAlign.CENTER,
             });
 

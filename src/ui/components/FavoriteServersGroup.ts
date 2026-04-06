@@ -1,4 +1,6 @@
 import GObject from 'gi://GObject';
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { ServerRowItemType } from './ServerRowItem.js';
 
@@ -7,8 +9,17 @@ const FavoriteServersGroup = GObject.registerClass(
         declare _serverMap: Map<string, ServerRowItemType>;
 
         _init() {
-            super._init('📁 Other servers');
+            super._init('Other servers');
             this._serverMap = new Map();
+
+            const icon = new St.Icon({
+                icon_name: 'document-open-symbolic',
+                icon_size: 14,
+                style: 'margin-right: 6px;',
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            const labelIndex = this.get_children().indexOf(this.label);
+            this.insert_child_at_index(icon, labelIndex !== -1 ? labelIndex : 1);
         }
 
         /**
