@@ -13,6 +13,7 @@ import { PhpInfo } from './core/dto/PhpInfo.js';
 import { SymfonyServer } from './core/commands/ServerListCommand.js';
 import { FavoritesRepository } from './core/services/FavoritesRepository.js';
 import { ProxyStatus } from './core/commands/ProxyStatusCommand.js';
+import { openAboutDialog } from './ui/components/AboutDialog.js';
 
 type DesiredState = 'running' | 'stopped';
 
@@ -59,6 +60,7 @@ export default class SymfonyMenubarExtension extends Extension {
             onStopProxy: () => this._handleStopProxy(),
             onRestartProxy: () => this._handleRestartProxy(),
             onOpenProxyBrowser: () => this._handleOpenProxyBrowser(),
+            onAbout: () => openAboutDialog(),
         });
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 

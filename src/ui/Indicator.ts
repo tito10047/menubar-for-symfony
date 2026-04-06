@@ -1,6 +1,6 @@
 import GObject from 'gi://GObject';
 import { Button } from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import { PopupSeparatorMenuItem, PopupMenuSection } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupSeparatorMenuItem, PopupMenuSection, PopupImageMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -27,6 +27,7 @@ interface IndicatorParams {
     onStopProxy: () => void;
     onRestartProxy: () => void;
     onOpenProxyBrowser: () => void;
+    onAbout?: () => void;
 }
 
 export const Indicator = GObject.registerClass(
@@ -85,6 +86,12 @@ export const Indicator = GObject.registerClass(
                 onOpenBrowser: params.onOpenProxyBrowser,
             });
             menu.addMenuItem(this._proxyItem);
+
+            // ---- About ----
+            menu.addMenuItem(new PopupSeparatorMenuItem());
+            const aboutItem = new PopupImageMenuItem('About', 'help-about-symbolic');
+            aboutItem.connect('activate', () => params.onAbout?.());
+            menu.addMenuItem(aboutItem);
         }
 
         // ---- Public update API ----
