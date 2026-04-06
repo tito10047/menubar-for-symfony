@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -14,7 +15,9 @@ import { ProxyStatus } from './core/dto/ProxyStatus.js';
 import { FavoritesRepository } from './core/services/FavoritesRepository.js';
 import { ServerPollingService } from './core/services/ServerPollingService.js';
 import { ProxyPollingService } from './core/services/ProxyPollingService.js';
+import { PhpVersionFileService } from './core/services/PhpVersionFileService.js';
 import { openAboutDialog } from './ui/components/AboutDialog.js';
+import { openPhpVersionDialog } from './ui/dialogs/PhpVersionDialog.js';
 
 export default class SymfonyMenubarExtension extends Extension {
     private _indicator: IndicatorType | null = null;
@@ -22,9 +25,11 @@ export default class SymfonyMenubarExtension extends Extension {
     private _logger: LoggerInterface | null = null;
     private _lastServers: SymfonyServer[] | null = null;
     private _lastProxyStatus: ProxyStatus | null = null;
+    private _lastPhpVersions: PhpVersion[] = [];
     private _pollingService: ServerPollingService | null = null;
     private _proxyPollingService: ProxyPollingService | null = null;
     private _settings: ReturnType<Extension['getSettings']> | null = null;
+    private _phpVersionFileService: PhpVersionFileService | null = null;
 
     enable(): void {
         this._logger = new ConsoleLogger(this.getLogger());
@@ -54,6 +59,8 @@ export default class SymfonyMenubarExtension extends Extension {
 
         const favoritesRepository = new FavoritesRepository(this._settings);
 
+        this._phpVersionFileService = new PhpVersionFileService(GLib);
+
         this._indicator = new Indicator({
             onRefresh: () => this._refresh(),
             favoritesRepository,
@@ -64,6 +71,7 @@ export default class SymfonyMenubarExtension extends Extension {
                 if (server?.url) Gio.AppInfo.launch_default_for_uri(server.url, null);
             },
             onViewLogs: (dir) => this._handleViewLogs(dir),
+            onSetPhpVersion: (dir) => this._handleSetPhpVersion(dir),
             onStartProxy: () => this._handleStartProxy(),
             onStopProxy: () => this._handleStopProxy(),
             onRestartProxy: () => this._handleRestartProxy(),
@@ -100,9 +108,11 @@ export default class SymfonyMenubarExtension extends Extension {
         this._logger = null;
         this._lastServers = null;
         this._lastProxyStatus = null;
+        this._lastPhpVersions = [];
         this._pollingService = null;
         this._proxyPollingService = null;
         this._settings = null;
+        this._phpVersionFileService = null;
     }
 
     private _handleStartServer(dir: string): void {
@@ -161,6 +171,21 @@ export default class SymfonyMenubarExtension extends Extension {
                     isRunning: orig.isRunning,
                     port: orig.isRunning ? String(orig.port) : '',
                 });
+            },
+        });
+    }
+
+    private _handleSetPhpVersion(dir: string): void {
+        const currentVersion = this._phpVersionFileService?.read(dir) ?? null;
+        const serverName = dir.split('/').pop() ?? dir;
+        openPhpVersionDialog({
+            serverName,
+            currentVersion,
+            availableVersions: this._lastPhpVersions,
+            onSelect: (version) => {
+                this._phpVersionFileService?.write(dir, version);
+                this._logger?.info(`[SymfonyMenubar] Set PHP version ${version} for ${dir}`);
+                this._indicator?.updateServerPhpVersion(dir, version);
             },
         });
     }
@@ -249,12 +274,16 @@ export default class SymfonyMenubarExtension extends Extension {
                         this._logger?.error(`php:info failed for ${version.version}:`, err);
                     }
                 }
+                this._lastPhpVersions = versions;
                 indicator.updatePhpStatus(versions, phpInfoMap);
             })
             .catch(err => this._logger?.error('PHP refresh failed:', err));
 
         manager.runCommand<SymfonyServer[]>('server:list')
             .then(servers => {
+                for (const server of servers) {
+                    server.phpVersion = this._phpVersionFileService?.read(server.directory) ?? undefined;
+                }
                 this._lastServers = servers;
                 indicator.updateServerStatus(servers);
             })

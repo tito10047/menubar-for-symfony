@@ -10,11 +10,13 @@ export interface ServerRowItemParams {
     port: string;
     isRunning: boolean;
     isFavorite: boolean;
+    phpVersion?: string | null;
     onStart: (directory: string) => void;
     onStop: (directory: string) => void;
     onOpenBrowser: (directory: string) => void;
     onToggleFavorite: (directory: string) => void;
     onViewLogs: (directory: string) => void;
+    onSetPhpVersion?: (directory: string) => void;
 }
 
 const ServerRowItem = GObject.registerClass(
@@ -25,6 +27,7 @@ const ServerRowItem = GObject.registerClass(
         declare _browserBtn: InstanceType<typeof St.Button>;
         declare _logsBtn: InstanceType<typeof St.Button>;
         declare _favoriteBtn: InstanceType<typeof St.Button>;
+        declare _phpVersionBtn: InstanceType<typeof St.Button>;
         declare _isRunning: boolean;
         declare _isFavorite: boolean;
         declare _directory: string;
@@ -33,6 +36,7 @@ const ServerRowItem = GObject.registerClass(
         declare _onOpenBrowser: (directory: string) => void;
         declare _onToggleFavorite: (directory: string) => void;
         declare _onViewLogs: (directory: string) => void;
+        declare _onSetPhpVersion: ((directory: string) => void) | undefined;
 
         _init(params: ServerRowItemParams) {
             super._init({ reactive: false });
@@ -45,6 +49,7 @@ const ServerRowItem = GObject.registerClass(
             this._onOpenBrowser = params.onOpenBrowser;
             this._onToggleFavorite = params.onToggleFavorite;
             this._onViewLogs = params.onViewLogs;
+            this._onSetPhpVersion = params.onSetPhpVersion;
 
             // Status dot
             this._dot = new St.Icon({
@@ -69,6 +74,14 @@ const ServerRowItem = GObject.registerClass(
                 visible: !!params.port,
             });
 
+            // PHP version button
+            this._phpVersionBtn = new St.Button({
+                label: params.phpVersion ? params.phpVersion : '—',
+                style_class: 'php-version-button',
+                can_focus: true,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+
             // Action buttons
             this._startStopBtn = this._makeIconButton(
                 params.isRunning ? 'media-playback-stop-symbolic' : 'media-playback-start-symbolic'
@@ -91,6 +104,7 @@ const ServerRowItem = GObject.registerClass(
             this.add_child(this._dot);
             this.add_child(nameLabel);
             this.add_child(this._portLabel);
+            this.add_child(this._phpVersionBtn);
             this.add_child(buttonBox);
 
             this._connectSignals();
@@ -111,6 +125,10 @@ const ServerRowItem = GObject.registerClass(
         updatePort(port: string): void {
             this._portLabel.set_text(port ? `:${port}` : '');
             this._portLabel.visible = !!port;
+        }
+
+        updatePhpVersion(version: string | null): void {
+            this._phpVersionBtn.set_label(version ?? '—');
         }
 
         updateFavorite(isFavorite: boolean): void {
@@ -156,6 +174,10 @@ const ServerRowItem = GObject.registerClass(
 
             this._favoriteBtn.connect('clicked', () => {
                 this._onToggleFavorite(this._directory);
+            });
+
+            this._phpVersionBtn.connect('clicked', () => {
+                this._onSetPhpVersion?.(this._directory);
             });
         }
     }

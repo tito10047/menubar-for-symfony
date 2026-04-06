@@ -54,6 +54,42 @@
 }
 .server-action-icon { color: rgba(255, 255, 255, 0.7); }
 
+/* ---- PHP version button (ServerRowItem) ---- */
+.php-version-button {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.55);
+    border: none;
+}
+.php-version-button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ---- PHP version dialog ---- */
+.php-version-dialog-list {
+    margin-top: 12px;
+    spacing: 4px;
+}
+.php-version-dialog-item {
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    border: none;
+    text-align: left;
+}
+.php-version-dialog-item:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+.php-version-dialog-item-current {
+    color: #4ade80;
+    font-weight: bold;
+}
+
 /* ---- About dialog ---- */
 .about-repo-link {
     color: #78aeed;

@@ -25,6 +25,7 @@ interface IndicatorParams {
     onStopServer: (directory: string) => void;
     onOpenBrowser: (directory: string) => void;
     onViewLogs: (directory: string) => void;
+    onSetPhpVersion: (directory: string) => void;
     onStartProxy: () => void;
     onStopProxy: () => void;
     onRestartProxy: () => void;
@@ -44,6 +45,7 @@ export const Indicator = GObject.registerClass(
         declare _onStopServer: (directory: string) => void;
         declare _onOpenBrowser: (directory: string) => void;
         declare _onViewLogs: (directory: string) => void;
+        declare _onSetPhpVersion: (directory: string) => void;
         declare _serverItemMap: Map<string, ServerItemInterface>;
 
         _init(params: IndicatorParams) {
@@ -55,6 +57,7 @@ export const Indicator = GObject.registerClass(
             this._onStopServer = params.onStopServer;
             this._onOpenBrowser = params.onOpenBrowser;
             this._onViewLogs = params.onViewLogs;
+            this._onSetPhpVersion = params.onSetPhpVersion;
             this._serverItemMap = new Map();
 
             const topLabel = new St.Label({
@@ -139,11 +142,13 @@ export const Indicator = GObject.registerClass(
                         port,
                         isRunning: server.isRunning,
                         isFavorite: true,
+                        phpVersion: server.phpVersion ?? null,
                         onToggleFavorite: (dir) => this._toggleFavorite(dir),
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
                         onViewLogs: this._onViewLogs,
+                        onSetPhpVersion: this._onSetPhpVersion,
                     });
                     this._serverSection.addMenuItem(item);
                     this._serverItemMap.set(server.directory, item);
@@ -154,11 +159,13 @@ export const Indicator = GObject.registerClass(
                         port,
                         isRunning: server.isRunning,
                         isFavorite: false,
+                        phpVersion: server.phpVersion ?? null,
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
                         onToggleFavorite: (dir) => this._toggleFavorite(dir),
                         onViewLogs: this._onViewLogs,
+                        onSetPhpVersion: this._onSetPhpVersion,
                     });
                     this._otherServersGroup.addServer(server.directory, item);
                     this._serverItemMap.set(server.directory, item);
@@ -188,6 +195,16 @@ export const Indicator = GObject.registerClass(
             if (!item) return;
             item.updateStatus(state.isRunning);
             item.updatePort(state.port);
+        }
+
+        /**
+         * Updates the PHP version badge of a single server item in place.
+         * Safe no-op if the item is not in the registry.
+         */
+        updateServerPhpVersion(directory: string, version: string | null): void {
+            const item = this._serverItemMap.get(directory);
+            if (!item) return;
+            item.updatePhpVersion(version);
         }
 
         /**

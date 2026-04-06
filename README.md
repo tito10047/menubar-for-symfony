@@ -12,9 +12,8 @@ Access, start, and stop your local Symfony servers from the menu bar. Open them 
 - **One-click browser open**: open any running server in your default browser instantly
 - **Server logs**: jump straight to `symfony server:log` in Terminal, pre-filled for the right project
 - **PHP versions**: see all installed PHP versions and set the default
-- **Proxy domains**: manage `.wip` Symfony proxy domains
-- **Auto-updates**: built-in update notifications powered by Sparkle
-- **Start at Login**: optionally launch on login so it is always available
+- **Set PHP version** set specific PHP version for a project
+- **Start at Login**: launch on login so it is always available
 
 ## Requirements
 

@@ -12,11 +12,13 @@ export interface ServerMenuItemParams {
     port: string;
     isRunning: boolean;
     isFavorite: boolean;
+    phpVersion?: string | null;
     onToggleFavorite?: (directory: string) => void;
     onStart?: (directory: string) => void;
     onStop?: (directory: string) => void;
     onOpenBrowser?: (directory: string) => void;
     onViewLogs?: (directory: string) => void;
+    onSetPhpVersion?: (directory: string) => void;
 }
 
 const ServerMenuItem = GObject.registerClass(
@@ -26,11 +28,13 @@ const ServerMenuItem = GObject.registerClass(
         declare _isRunning: boolean;
         declare _isFavorite: boolean;
         declare _directory: string;
+        declare _phpVersion: string | null;
         declare _onToggleFavorite: ((directory: string) => void) | undefined;
         declare _onStart: ((directory: string) => void) | undefined;
         declare _onStop: ((directory: string) => void) | undefined;
         declare _onOpenBrowser: ((directory: string) => void) | undefined;
         declare _onViewLogs: ((directory: string) => void) | undefined;
+        declare _onSetPhpVersion: ((directory: string) => void) | undefined;
 
         _init(params: ServerMenuItemParams) {
             super._init(params.name);
@@ -39,11 +43,13 @@ const ServerMenuItem = GObject.registerClass(
             this._isRunning = params.isRunning;
             this._isFavorite = params.isFavorite;
             this._directory = params.directory;
+            this._phpVersion = params.phpVersion ?? null;
             this._onToggleFavorite = params.onToggleFavorite;
             this._onStart = params.onStart;
             this._onStop = params.onStop;
             this._onOpenBrowser = params.onOpenBrowser;
             this._onViewLogs = params.onViewLogs;
+            this._onSetPhpVersion = params.onSetPhpVersion;
             this._portLabel = null;
 
             // Status dot — inserted directly before the name label.
@@ -72,6 +78,14 @@ const ServerMenuItem = GObject.registerClass(
 
         updatePort(port: string): void {
             this._setPort(port);
+        }
+
+        updatePhpVersion(version: string | null): void {
+            this._phpVersion = version;
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._rebuildActions();
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         // ---- private helpers (GObject _ convention) ----
@@ -129,6 +143,13 @@ const ServerMenuItem = GObject.registerClass(
             const logsItem = new PopupImageMenuItem('View logs', 'utilities-terminal-symbolic');
             (logsItem as any).activate = () => this._onViewLogs?.(this._directory);
             this.menu.addMenuItem(logsItem);
+
+            this.menu.addMenuItem(new PopupSeparatorMenuItem());
+
+            const phpLabel = this._phpVersion ? `PHP: ${this._phpVersion}` : 'PHP: —';
+            const phpItem = new PopupImageMenuItem(phpLabel, 'preferences-system-symbolic');
+            (phpItem as any).activate = () => this._onSetPhpVersion?.(this._directory);
+            this.menu.addMenuItem(phpItem);
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
             const favIcon = this._isFavorite ? 'starred-symbolic' : 'non-starred-symbolic';
