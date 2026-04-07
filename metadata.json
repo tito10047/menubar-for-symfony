@@ -1,9 +1,10 @@
 {
-  "uuid": "symfony-cli-menubar@jozefm.github.com",
-  "name": "Symfony CLI Menubar",
-  "description": "Manage your Symfony local servers from the top bar",
+  "uuid": "menubar-for-symfony@tito10047.github.com",
+  "name": "Menubar for Symfony",
+  "description": "Manage local Symfony CLI servers, monitor proxy status, and switch PHP versions directly from the top panel.",
   "shell-version": [ "49", "50" ],
   "version": 1,
   "type": "extension",
+  "url": "https://github.com/tito10047/menubar-for-symfony",
   "settings-schema": "org.gnome.shell.extensions.symfony-menubar"
 }

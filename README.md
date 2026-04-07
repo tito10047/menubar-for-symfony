@@ -1,8 +1,8 @@
-# Symfony CLI Menu Bar
+# Menu Bar for Symfony
 
 > A native Gnome menu bar app for managing local [Symfony CLI](https://github.com/symfony-cli/symfony-cli) servers.
 
-![Symfony CLI Menu Bar](assets/hero.png)
+![Menu Bar for Symfony](assets/hero.png)
 
 Access, start, and stop your local Symfony servers from the menu bar. Open them in your browser, view logs, manage PHP versions and proxy domains — without leaving your current context.
 
@@ -73,7 +73,7 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for development guidelines.
 
 ## Thanks
 
-Symfony CLI Menu Bar builds on top of remarkable open source work.
+Menu Bar for Symfony builds on top of remarkable open source work.
 
 **[Symfony](https://symfony.com)**: the PHP framework this whole ecosystem is built on.
 Fabien Potencier [@fabpot](https://github.com/fabpot) and the Symfony contributors.

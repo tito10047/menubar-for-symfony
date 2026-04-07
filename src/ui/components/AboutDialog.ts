@@ -10,7 +10,7 @@ export function openAboutDialog(version?: string): void {
 
     const versionStr = version ?? '1';
     const content = new MessageDialogContent({
-        title: 'Symfony CLI Menubar',
+        title: 'Menu Bar for Symfony',
         description: `Manage your Symfony local servers from the GNOME top bar.\n\nAuthor: Jozef Môstka\nVersion: ${versionStr}`,
     });
 

@@ -1,6 +1,6 @@
-# Contributing to Symfony CLI Menu Bar (GNOME Port)
+# Contributing to Menu Bar for Symfony (GNOME Port)
 
-Thank you for your interest in contributing to Symfony CLI Menu Bar for GNOME! This project is a port of the macOS version, adapted for Linux and GNOME Shell using GJS (GNOME JavaScript).
+Thank you for your interest in contributing to Menu Bar for Symfony for GNOME! This project is a port of the macOS version, adapted for Linux and GNOME Shell using GJS (GNOME JavaScript).
 
 ## Code of Conduct
 Be respectful, constructive, and professional in all interactions.
