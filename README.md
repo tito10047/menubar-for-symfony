@@ -39,6 +39,29 @@ npm install
 ```
 
 
+## Debug Logging
+
+Verbose logging (debug/info messages) is **disabled by default** to keep the system journal clean.
+
+Enable it when troubleshooting via GSettings:
+
+```bash
+gsettings set org.gnome.shell.extensions.symfony-menubar debug-logging true
+```
+
+Disable it again with:
+
+```bash
+gsettings set org.gnome.shell.extensions.symfony-menubar debug-logging false
+```
+
+The change takes effect immediately without restarting the extension. Errors and warnings are always logged regardless of this setting.
+To read extension logs use:
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell
+```
+
 ## MacOS X version
 
 see [smnandre/symfony-cli-menubar](https://github.com/smnandre/symfony-cli-menubar)

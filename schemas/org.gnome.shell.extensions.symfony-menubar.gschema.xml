@@ -31,5 +31,10 @@
       <summary>Favorite servers</summary>
       <description>List of server directory paths marked as favorites.</description>
     </key>
+    <key name="debug-logging" type="b">
+      <default>false</default>
+      <summary>Debug logging</summary>
+      <description>Enable verbose debug/info logging to the system journal. Disabled by default; enable only when troubleshooting.</description>
+    </key>
   </schema>
 </schemalist>

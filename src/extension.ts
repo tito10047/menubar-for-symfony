@@ -7,7 +7,6 @@ import { Indicator, IndicatorType } from './ui/Indicator.js';
 import { GjsProcessRunner } from './core/GjsProcessRunner.js';
 import { SymfonyCliManager } from './core/SymfonyCliManager.js';
 import { ConsoleLogger } from './core/logging/ConsoleLogger.js';
-import { LoggerInterface } from './core/interfaces/LoggerInterface.js';
 import { PhpVersion } from './core/dto/PhpVersion.js';
 import { PhpInfo } from './core/dto/PhpInfo.js';
 import { SymfonyServer } from './core/dto/SymfonyServer.js';
@@ -22,7 +21,8 @@ import { openPhpVersionDialog } from './ui/dialogs/PhpVersionDialog.js';
 export default class SymfonyMenubarExtension extends Extension {
     private _indicator: IndicatorType | null = null;
     private _manager: SymfonyCliManager | null = null;
-    private _logger: LoggerInterface | null = null;
+    private _logger: ConsoleLogger | null = null;
+    private _settingsSignalId: number | null = null;
     private _lastServers: SymfonyServer[] | null = null;
     private _lastProxyStatus: ProxyStatus | null = null;
     private _lastPhpVersions: PhpVersion[] = [];
@@ -40,6 +40,13 @@ export default class SymfonyMenubarExtension extends Extension {
         this._manager.setLogger(this._logger);
 
         this._settings = this.getSettings();
+
+        this._logger.setDebugLogging(this._settings.get_boolean('debug-logging'));
+        this._settingsSignalId = this._settings.connect('changed::debug-logging', () => {
+            if (this._logger && this._settings) {
+                this._logger.setDebugLogging(this._settings.get_boolean('debug-logging'));
+            }
+        });
 
         this._pollingService = new ServerPollingService(
             () => ({
@@ -111,6 +118,10 @@ export default class SymfonyMenubarExtension extends Extension {
         this._lastPhpVersions = [];
         this._pollingService = null;
         this._proxyPollingService = null;
+        if (this._settingsSignalId !== null) {
+            this._settings?.disconnect(this._settingsSignalId);
+            this._settingsSignalId = null;
+        }
         this._settings = null;
         this._phpVersionFileService = null;
     }

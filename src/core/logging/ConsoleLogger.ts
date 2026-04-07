@@ -8,16 +8,23 @@ interface GnomeLogger {
 
 export class ConsoleLogger implements LoggerInterface {
     private readonly _gnomeLogger: GnomeLogger;
+    private _debugLogging: boolean = false;
 
     constructor(gnomeLogger: GnomeLogger) {
         this._gnomeLogger = gnomeLogger;
     }
 
+    setDebugLogging(enabled: boolean): void {
+        this._debugLogging = enabled;
+    }
+
     debug(message: string, ...args: any[]): void {
+        if (!this._debugLogging) return;
         this._gnomeLogger.log(args.length ? `${message} ${args.map(a => JSON.stringify(a)).join(' ')}` : message);
     }
 
     info(message: string, ...args: any[]): void {
+        if (!this._debugLogging) return;
         this._gnomeLogger.log(args.length ? `${message} ${args.map(a => JSON.stringify(a)).join(' ')}` : message);
     }
 

@@ -2,7 +2,7 @@
   "uuid": "symfony-cli-menubar@jozefm.github.com",
   "name": "Symfony CLI Menubar",
   "description": "Manage your Symfony local servers from the top bar",
-  "shell-version": [ "45", "46", "47", "48", "49", "50" ],
+  "shell-version": [ "49", "50" ],
   "version": 1,
   "type": "extension",
   "settings-schema": "org.gnome.shell.extensions.symfony-menubar"
