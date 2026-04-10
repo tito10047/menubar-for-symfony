@@ -5,6 +5,7 @@ import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { PopupMenuItem, PopupImageMenuItem, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { ServerItemInterface } from './ServerItemInterface.js';
+import { CustomAction } from '../../core/dto/CustomAction.js';
 
 export interface ServerMenuItemParams {
     directory: string;
@@ -19,6 +20,8 @@ export interface ServerMenuItemParams {
     onOpenBrowser?: (directory: string) => void;
     onViewLogs?: (directory: string) => void;
     onSetPhpVersion?: (directory: string) => void;
+    customActions?: CustomAction[];
+    onCustomAction?: (action: CustomAction, directory: string) => void;
 }
 
 const ServerMenuItem = GObject.registerClass(
@@ -35,6 +38,8 @@ const ServerMenuItem = GObject.registerClass(
         declare _onOpenBrowser: ((directory: string) => void) | undefined;
         declare _onViewLogs: ((directory: string) => void) | undefined;
         declare _onSetPhpVersion: ((directory: string) => void) | undefined;
+        declare _customActions: CustomAction[];
+        declare _onCustomAction: ((action: CustomAction, directory: string) => void) | undefined;
 
         _init(params: ServerMenuItemParams) {
             super._init(params.name);
@@ -50,6 +55,8 @@ const ServerMenuItem = GObject.registerClass(
             this._onOpenBrowser = params.onOpenBrowser;
             this._onViewLogs = params.onViewLogs;
             this._onSetPhpVersion = params.onSetPhpVersion;
+            this._customActions = params.customActions ?? [];
+            this._onCustomAction = params.onCustomAction;
             this._portLabel = null;
 
             // Status dot — inserted directly before the name label.
@@ -157,6 +164,15 @@ const ServerMenuItem = GObject.registerClass(
             const favItem = new PopupImageMenuItem(favLabel, favIcon);
             (favItem as any).activate = () => this._onToggleFavorite?.(this._directory);
             this.menu.addMenuItem(favItem);
+
+            if (this._customActions.length > 0) {
+                this.menu.addMenuItem(new PopupSeparatorMenuItem());
+                for (const action of this._customActions) {
+                    const actionItem = new PopupImageMenuItem(action.name, action.icon ?? 'system-run-symbolic');
+                    (actionItem as any).activate = () => this._onCustomAction?.(action, this._directory);
+                    this.menu.addMenuItem(actionItem);
+                }
+            }
         }
     }
 );

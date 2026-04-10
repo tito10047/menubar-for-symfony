@@ -3,6 +3,7 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { ServerItemInterface } from './ServerItemInterface.js';
+import { CustomAction } from '../../core/dto/CustomAction.js';
 
 export interface ServerRowItemParams {
     directory: string;
@@ -17,6 +18,8 @@ export interface ServerRowItemParams {
     onToggleFavorite: (directory: string) => void;
     onViewLogs: (directory: string) => void;
     onSetPhpVersion?: (directory: string) => void;
+    customActions?: CustomAction[];
+    onCustomAction?: (action: CustomAction, directory: string) => void;
 }
 
 const ServerRowItem = GObject.registerClass(
@@ -100,6 +103,12 @@ const ServerRowItem = GObject.registerClass(
             buttonBox.add_child(this._browserBtn);
             buttonBox.add_child(this._logsBtn);
             buttonBox.add_child(this._favoriteBtn);
+
+            for (const action of (params.customActions ?? []).filter(a => a.inline)) {
+                const btn = this._makeIconButton(action.icon ?? 'system-run-symbolic');
+                btn.connect('clicked', () => params.onCustomAction?.(action, this._directory));
+                buttonBox.add_child(btn);
+            }
 
             this.add_child(this._dot);
             this.add_child(nameLabel);

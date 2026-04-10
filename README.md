@@ -39,6 +39,66 @@ npm install
 ```
 
 
+## Custom Actions
+
+You can add custom shell commands to every server's context menu by creating an `actions.json` file in the extension directory:
+
+```json
+[
+  {
+    "name": "Deploy",
+    "command": "npm run deploy",
+    "icon": "mail-send-symbolic",
+    "inline": true
+  },
+  {
+    "name": "Open in VS Code",
+    "path": "~/work/project",
+    "command": "code .",
+    "icon": "document-open-symbolic"
+  }
+]
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | yes | Label shown in menu |
+| `command` | yes | Shell command to run |
+| `path` | no | Working directory; defaults to the server's project directory |
+| `icon` | no | Symbolic icon name; defaults to `system-run-symbolic` |
+| `inline` | no | `true` = also show as an icon button in the compact server row |
+
+The command runs as: `bash -c "cd '<path>' && <command>"`.
+
+### Magic variable `{path}`
+
+Use `{path}` in both `path` and `command` fields — it is replaced at runtime with the server's project directory:
+
+```json
+[
+  {
+    "name": "Open in VS Code",
+    "path": "{path}",
+    "command": "code {path}",
+    "icon": "document-open-symbolic"
+  },
+  {
+    "name": "Git pull",
+    "command": "git -C {path} pull",
+    "icon": "view-refresh-symbolic",
+    "inline": true
+  }
+]
+```
+
+File location:
+
+```
+~/.local/share/gnome-shell/extensions/menubar-for-symfony@tito10047.github.com/actions.json
+```
+
+Actions defined without `"inline": true` appear only in the submenu of favorite servers. Actions with `"inline": true` also appear as icon buttons in the compact (non-favorite) server rows.
+
 ## Debug Logging
 
 Verbose logging (debug/info messages) is **disabled by default** to keep the system journal clean.
