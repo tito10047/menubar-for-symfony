@@ -69,6 +69,7 @@ export default class SymfonyMenubarExtension extends Extension {
         this._phpVersionFileService = new PhpVersionFileService(GLib);
 
         this._indicator = new Indicator({
+            extensionPath: this.path,
             onRefresh: () => this._refresh(),
             favoritesRepository,
             onStartServer: (dir) => this._handleStartServer(dir),

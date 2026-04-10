@@ -1,4 +1,5 @@
 import GObject from 'gi://GObject';
+import GLib from 'gi://GLib';
 import { Button } from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import { PopupSeparatorMenuItem, PopupMenuSection, PopupImageMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import St from 'gi://St';
@@ -15,10 +16,13 @@ import { PhpVersion } from '../core/dto/PhpVersion.js';
 import { PhpInfo } from '../core/dto/PhpInfo.js';
 import { SymfonyServer } from '../core/dto/SymfonyServer.js';
 import { ProxyStatus } from '../core/dto/ProxyStatus.js';
+import { CustomAction } from '../core/dto/CustomAction.js';
 import { FavoritesRepositoryInterface } from '../core/services/FavoritesRepository.js';
+import { CustomActionsLoader } from '../core/services/CustomActionsLoader.js';
 import { ServerItemInterface } from './components/ServerItemInterface.js';
 
 interface IndicatorParams {
+    extensionPath: string;
     onRefresh?: () => void;
     favoritesRepository: FavoritesRepositoryInterface;
     onStartServer: (directory: string) => void;
@@ -47,12 +51,14 @@ export const Indicator = GObject.registerClass(
         declare _onViewLogs: (directory: string) => void;
         declare _onSetPhpVersion: (directory: string) => void;
         declare _serverItemMap: Map<string, ServerItemInterface>;
+        declare _customActions: CustomAction[];
 
         _init(params: IndicatorParams) {
             super._init(0.0, 'Symfony Menubar', false);
 
             this._favoritesRepository = params.favoritesRepository;
             this._onRefresh = params.onRefresh;
+            this._customActions = this._loadCustomActions(params.extensionPath);
             this._onStartServer = params.onStartServer;
             this._onStopServer = params.onStopServer;
             this._onOpenBrowser = params.onOpenBrowser;
@@ -149,6 +155,8 @@ export const Indicator = GObject.registerClass(
                         onOpenBrowser: this._onOpenBrowser,
                         onViewLogs: this._onViewLogs,
                         onSetPhpVersion: this._onSetPhpVersion,
+                        customActions: this._customActions,
+                        onCustomAction: (action, dir) => this._executeCustomAction(action, dir),
                     });
                     this._serverSection.addMenuItem(item);
                     this._serverItemMap.set(server.directory, item);
@@ -166,6 +174,8 @@ export const Indicator = GObject.registerClass(
                         onToggleFavorite: (dir) => this._toggleFavorite(dir),
                         onViewLogs: this._onViewLogs,
                         onSetPhpVersion: this._onSetPhpVersion,
+                        customActions: this._customActions,
+                        onCustomAction: (action, dir) => this._executeCustomAction(action, dir),
                     });
                     this._otherServersGroup.addServer(server.directory, item);
                     this._serverItemMap.set(server.directory, item);
@@ -212,6 +222,21 @@ export const Indicator = GObject.registerClass(
          */
         updateProxyStatus(status: ProxyStatus): void {
             this._proxyItem.updateStatus(status.isRunning, status.proxies);
+        }
+
+        _loadCustomActions(extensionPath: string): CustomAction[] {
+            const loader = new CustomActionsLoader(GLib);
+            return loader.load(extensionPath);
+        }
+
+        _executeCustomAction(action: CustomAction, serverDirectory: string): void {
+            const rawPath = (action.path ?? serverDirectory).replace(/\{path\}/g, serverDirectory);
+            const command = action.command.replace(/\{path\}/g, serverDirectory);
+            const dir = rawPath.startsWith('~/') ? GLib.get_home_dir() + rawPath.slice(1) : rawPath;
+            const escapedDir = dir.replace(/'/g, "'\\''");
+            try {
+                GLib.spawn_command_line_async(`bash -c "cd '${escapedDir}' && ${command}"`);
+            } catch { /* silent — extension must not crash on action failure */ }
         }
     }
 );
