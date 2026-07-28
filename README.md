@@ -144,7 +144,7 @@ Fabien Potencier [@fabpot](https://github.com/fabpot) and Tugdual Saunier [@tuck
 
 ## License
 
-Released by [Jozef  Môstka](https://vsetkosada.sk/en) under the [MIT License](LICENSE).
+Released by [Jozef  Môstka](https://vsetkosada.sk/en) under the [GNU General Public License v2.0 or later](LICENSE) (GPL-2.0-or-later).
 
 This project is inspired by [Symfony CLI Menu bar](https://github.com/smnandre/symfony-cli-menubar) by [@smnandre](https://github.com/smnandre).
 

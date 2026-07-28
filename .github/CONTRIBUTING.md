@@ -124,4 +124,4 @@ This project uses standard GNOME symbolic icons. For consistency and inspiration
 [GNOME 46 Adwaita Icons](https://github.com/StorageB/icons/blob/main/GNOME46Adwaita/icons.md)
 
 ## License
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the GNU General Public License v2.0 or later (GPL-2.0-or-later).
