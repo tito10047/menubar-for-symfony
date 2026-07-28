@@ -7,7 +7,7 @@ import Clutter from 'gi://Clutter';
 
 import { PhpVersionItem } from './components/PhpVersionItem.js';
 import { ServerMenuItem } from './components/ServerMenuItem.js';
-import { ServerRowItem } from './components/ServerRowItem.js';
+import { ServerRowItem, ServerRowItemParams } from './components/ServerRowItem.js';
 import { FavoriteServersGroup, FavoriteServersGroupType } from './components/FavoriteServersGroup.js';
 import { ProxyMenuItem, ProxyMenuItemType } from './components/ProxyMenuItem.js';
 import { createSectionHeader } from './components/SectionHeader.js';
@@ -54,6 +54,7 @@ export const Indicator = GObject.registerClass(
         declare _customActions: CustomAction[];
         declare _cliNotAvailableItem: InstanceType<typeof PopupMenuItem>;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: IndicatorParams) {
             super._init(0.0, 'Symfony Menubar', false);
 
@@ -73,8 +74,8 @@ export const Indicator = GObject.registerClass(
             });
             this.add_child(topLabel);
 
-            const menu = this.menu;
-            menu.actor.add_style_class_name('symfony-menubar-menu');
+            // @ts-ignore - PopupMenu/PopupDummyMenu union type in @girs; actor always has add_style_class_name at runtime
+            const menu = this.menu as any;
 
             // ---- PHP section ----
             menu.addMenuItem(createSectionHeader('PHP', { onRefresh: params.onRefresh }));
@@ -87,6 +88,7 @@ export const Indicator = GObject.registerClass(
             this._serverSection = new PopupMenuSection();
             menu.addMenuItem(this._serverSection);
 
+            // @ts-ignore - GObject subclass constructor type mismatch in @girs
             this._otherServersGroup = new FavoriteServersGroup();
             menu.addMenuItem(this._otherServersGroup);
 
@@ -101,6 +103,7 @@ export const Indicator = GObject.registerClass(
 
             // ---- Proxy section ----
             menu.addMenuItem(createSectionHeader('Proxy', { onRefresh: params.onRefresh }));
+            // @ts-ignore - GObject subclass constructor type mismatch in @girs
             this._proxyItem = new ProxyMenuItem({
                 onStart: params.onStartProxy,
                 onStop: params.onStopProxy,
@@ -126,7 +129,7 @@ export const Indicator = GObject.registerClass(
                 item.updateStatus(version.isDefault);
                 const info = phpInfoMap.get(version.version);
                 if (info) item.updateBadges(info);
-                this._phpSection.addMenuItem(item);
+                this._phpSection.addMenuItem(item as any);
             }
         }
 
@@ -141,6 +144,7 @@ export const Indicator = GObject.registerClass(
                 const port = server.isRunning ? String(server.port) : '';
 
                 if (isFav) {
+                    // @ts-ignore - GObject subclass constructor type mismatch in @girs
                     const item = new ServerMenuItem({
                         directory: server.directory,
                         name,
@@ -148,19 +152,19 @@ export const Indicator = GObject.registerClass(
                         isRunning: server.isRunning,
                         isFavorite: true,
                         phpVersion: server.phpVersion ?? null,
-                        onToggleFavorite: (dir) => this._toggleFavorite(dir),
+                        onToggleFavorite: (dir: string) => this._toggleFavorite(dir),
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
                         onViewLogs: this._onViewLogs,
                         onSetPhpVersion: this._onSetPhpVersion,
                         customActions: this._customActions,
-                        onCustomAction: (action, dir) => this._executeCustomAction(action, dir),
+                        onCustomAction: (action: CustomAction, dir: string) => this._executeCustomAction(action, dir),
                     });
-                    this._serverSection.addMenuItem(item);
+                    this._serverSection.addMenuItem(item as any);
                     this._serverItemMap.set(server.directory, item);
                 } else {
-                    const item = new ServerRowItem({
+                    const rowParams: ServerRowItemParams = {
                         directory: server.directory,
                         name,
                         port,
@@ -170,12 +174,14 @@ export const Indicator = GObject.registerClass(
                         onStart: this._onStartServer,
                         onStop: this._onStopServer,
                         onOpenBrowser: this._onOpenBrowser,
-                        onToggleFavorite: (dir) => this._toggleFavorite(dir),
+                        onToggleFavorite: (dir: string) => this._toggleFavorite(dir),
                         onViewLogs: this._onViewLogs,
                         onSetPhpVersion: this._onSetPhpVersion,
                         customActions: this._customActions,
-                        onCustomAction: (action, dir) => this._executeCustomAction(action, dir),
-                    });
+                        onCustomAction: (action: CustomAction, dir: string) => this._executeCustomAction(action, dir),
+                    };
+                    // @ts-ignore - GObject subclass constructor type mismatch in @girs
+                    const item = new ServerRowItem(rowParams);
                     this._otherServersGroup.addServer(server.directory, item);
                     this._serverItemMap.set(server.directory, item);
                 }

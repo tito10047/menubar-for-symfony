@@ -41,6 +41,7 @@ const ServerRowItem = GObject.registerClass(
         declare _onViewLogs: (directory: string) => void;
         declare _onSetPhpVersion: ((directory: string) => void) | undefined;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: ServerRowItemParams) {
             super._init({ reactive: false });
 
@@ -123,8 +124,7 @@ const ServerRowItem = GObject.registerClass(
             this._isRunning = isRunning;
             this._dot.remove_style_class_name(isRunning ? 'stopped' : 'running');
             this._dot.add_style_class_name(isRunning ? 'running' : 'stopped');
-            this._startStopBtn
-                .get_child()
+            (this._startStopBtn.get_child() as any)
                 ?.set_icon_name(
                     isRunning ? 'media-playback-stop-symbolic' : 'media-playback-start-symbolic'
                 );
@@ -142,8 +142,7 @@ const ServerRowItem = GObject.registerClass(
 
         updateFavorite(isFavorite: boolean): void {
             this._isFavorite = isFavorite;
-            this._favoriteBtn
-                .get_child()
+            (this._favoriteBtn.get_child() as any)
                 ?.set_icon_name(isFavorite ? 'starred-symbolic' : 'non-starred-symbolic');
         }
 

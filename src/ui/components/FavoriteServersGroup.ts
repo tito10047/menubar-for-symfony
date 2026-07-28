@@ -8,6 +8,7 @@ const FavoriteServersGroup = GObject.registerClass(
     class FavoriteServersGroup extends PopupMenu.PopupSubMenuMenuItem {
         declare _serverMap: Map<string, ServerRowItemType>;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init() {
             super._init('Other servers');
             this._serverMap = new Map();
@@ -28,7 +29,7 @@ const FavoriteServersGroup = GObject.registerClass(
          */
         addServer(directory: string, item: ServerRowItemType): void {
             this._serverMap.set(directory, item);
-            this.menu.addMenuItem(item);
+            (this.menu as any).addMenuItem(item);
         }
 
         getServer(directory: string): ServerRowItemType | undefined {

@@ -41,6 +41,7 @@ const ServerMenuItem = GObject.registerClass(
         declare _customActions: CustomAction[];
         declare _onCustomAction: ((action: CustomAction, directory: string) => void) | undefined;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: ServerMenuItemParams) {
             super._init(params.name);
             this.label.set_x_expand(true);

@@ -16,6 +16,7 @@ const PhpVersionItem = GObject.registerClass(
         declare _versionLabel: InstanceType<typeof St.Label>;
         declare _badgeContainer: InstanceType<typeof St.BoxLayout>;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: PhpVersionItemParams = {}) {
             super._init({ reactive: false });
 

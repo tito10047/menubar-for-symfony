@@ -68,24 +68,26 @@ export default class SymfonyMenubarExtension extends Extension {
 
         this._phpVersionFileService = new PhpVersionFileService(GLib);
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         this._indicator = new Indicator({
             extensionPath: this.path,
             onRefresh: () => this._refresh(),
             favoritesRepository,
-            onStartServer: (dir) => this._handleStartServer(dir),
-            onStopServer: (dir) => this._handleStopServer(dir),
-            onOpenBrowser: (dir) => {
+            onStartServer: (dir: string) => this._handleStartServer(dir),
+            onStopServer: (dir: string) => this._handleStopServer(dir),
+            onOpenBrowser: (dir: string) => {
                 const server = this._lastServers?.find(s => s.directory === dir);
                 if (server?.url) Gio.AppInfo.launch_default_for_uri(server.url, null);
             },
-            onViewLogs: (dir) => this._handleViewLogs(dir),
-            onSetPhpVersion: (dir) => this._handleSetPhpVersion(dir),
+            onViewLogs: (dir: string) => this._handleViewLogs(dir),
+            onSetPhpVersion: (dir: string) => this._handleSetPhpVersion(dir),
             onStartProxy: () => this._handleStartProxy(),
             onStopProxy: () => this._handleStopProxy(),
             onRestartProxy: () => this._handleRestartProxy(),
             onOpenProxyBrowser: () => this._handleOpenProxyBrowser(),
             onAbout: () => openAboutDialog(String(this.metadata['version'] ?? 1)),
         });
+        // @ts-ignore - IndicatorType extends Button; addToStatusArea accepts Button subclasses at runtime
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         this._refresh();

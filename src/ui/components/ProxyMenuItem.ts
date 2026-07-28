@@ -21,6 +21,7 @@ const ProxyMenuItem = GObject.registerClass(
         declare _restartItem: InstanceType<typeof PopupImageMenuItem>;
         declare _openBrowserItem: InstanceType<typeof PopupImageMenuItem>;
 
+        // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: ProxyMenuItemParams) {
             super._init('Proxy: stopped');
 

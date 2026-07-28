@@ -7,17 +7,23 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["ESNext", "DOM"],
     "baseUrl": ".",
     "paths": {
-      "gi://*": ["node_modules/@girs/*"],
-      "gi://St": ["node_modules/@girs/st-14/ambient"],
-      "gi://GLib": ["node_modules/@girs/glib-2.0/ambient"],
-      "gi://Gio": ["node_modules/@girs/gio-2.0/ambient"],
-      "gi://Clutter": ["node_modules/@girs/clutter-14/ambient"],
-      "gi://GObject": ["node_modules/@girs/gobject-2.0/ambient"],
-      "resource:///org/gnome/shell/*": ["node_modules/@girs/gnome-shell/*"]
+      "gi://GLib": ["node_modules/@girs/glib-2.0/glib-2.0-ambient"],
+      "gi://Gio": ["node_modules/@girs/gio-2.0/gio-2.0-ambient"],
+      "gi://St": ["node_modules/@girs/st-17/st-17-ambient"],
+      "gi://GObject": ["node_modules/@girs/gobject-2.0/gobject-2.0-ambient"],
+      "gi://Clutter": ["node_modules/@girs/clutter-17/clutter-17-ambient"],
+      "resource:///org/gnome/shell/extensions/extension.js": ["node_modules/@girs/gnome-shell/dist/extensions/extension"],
+      "resource:///org/gnome/shell/ui/dialog.js": ["node_modules/@girs/gnome-shell/dist/ui/dialog"],
+      "resource:///org/gnome/shell/ui/main.js": ["node_modules/@girs/gnome-shell/dist/ui/main"],
+      "resource:///org/gnome/shell/ui/modalDialog.js": ["node_modules/@girs/gnome-shell/dist/ui/modalDialog"],
+      "resource:///org/gnome/shell/ui/panelMenu.js": ["node_modules/@girs/gnome-shell/dist/ui/panelMenu"],
+      "resource:///org/gnome/shell/ui/popupMenu.js": ["node_modules/@girs/gnome-shell/dist/ui/popupMenu"]
     }
-  }
+  },
+  "include": ["src/**/*"]
 }
