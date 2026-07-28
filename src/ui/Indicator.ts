@@ -118,10 +118,6 @@ export const Indicator = GObject.registerClass(
 
         // ---- Public update API ----
 
-        /**
-         * Refreshes the PHP section with all available versions.
-         * Default version gets a green dot; others get a gray dot.
-         */
         updatePhpStatus(versions: PhpVersion[], phpInfoMap: Map<string, PhpInfo>): void {
             this._phpSection.removeAll();
             for (const version of versions) {
@@ -134,12 +130,6 @@ export const Indicator = GObject.registerClass(
             }
         }
 
-        /**
-         * Fully rebuilds the server sections from the given list.
-         * Favorite servers (by directory) are shown directly; others go into the
-         * collapsible "Other servers" group.
-         * Also resets the server item registry used for targeted optimistic updates.
-         */
         updateServerStatus(servers: SymfonyServer[]): void {
             this._serverSection.removeAll();
             this._otherServersGroup.clear();
@@ -205,10 +195,6 @@ export const Indicator = GObject.registerClass(
             this._onRefresh?.();
         }
 
-        /**
-         * Updates the UI of a single server item in place (optimistic or confirmed update).
-         * Safe no-op if the item is not in the registry (e.g., full rebuild happened first).
-         */
         updateServerItem(directory: string, state: { isRunning: boolean; port: string }): void {
             const item = this._serverItemMap.get(directory);
             if (!item) return;
@@ -216,19 +202,12 @@ export const Indicator = GObject.registerClass(
             item.updatePort(state.port);
         }
 
-        /**
-         * Updates the PHP version badge of a single server item in place.
-         * Safe no-op if the item is not in the registry.
-         */
         updateServerPhpVersion(directory: string, version: string | null): void {
             const item = this._serverItemMap.get(directory);
             if (!item) return;
             item.updatePhpVersion(version);
         }
 
-        /**
-         * Updates proxy section status dot, label, and domain list.
-         */
         updateProxyStatus(status: ProxyStatus): void {
             this._proxyItem.updateStatus(status.isRunning, status.proxies);
         }

@@ -3,28 +3,13 @@ import GLib from 'gi://GLib';
 import { ProcessRunnerInterface } from './interfaces/ProcessRunnerInterface';
 import { LoggerInterface } from './interfaces/LoggerInterface';
 
-/**
- * GjsProcessRunner implements ProcessRunnerInterface using GNOME's native Gio.Subprocess.
- * This class is designed to run in a GJS (GNOME JavaScript) environment.
- */
 export class GjsProcessRunner implements ProcessRunnerInterface {
     private binaryPath: string;
 
-    /**
-     * @param logger The logger to record command execution and results.
-     * @param binaryPath Default binary to run (e.g., 'symfony'). Defaults to 'symfony'.
-     */
     constructor(private logger: LoggerInterface, binaryPath: string = 'symfony') {
         this.binaryPath = binaryPath;
     }
 
-    /**
-     * Executes a command with arguments asynchronously and returns the stdout.
-     * 
-     * @param command Array containing the arguments (e.g., ['ls', '-la'] or just ['-la'] if binary is set).
-     * @returns A promise that resolves to the stdout string on success.
-     * @throws Error if the process fails or returns a non-zero exit code.
-     */
     async run(command: string[]): Promise<string> {
         let binary = this.binaryPath;
         let args = command;
@@ -43,8 +28,6 @@ export class GjsProcessRunner implements ProcessRunnerInterface {
             let proc: Gio.Subprocess;
 
             try {
-                // Create a new subprocess with stdout and stderr pipes.
-                // This might throw if the binary is not found in PATH or other OS errors occur.
                 proc = Gio.Subprocess.new(
                     fullArgs,
                     Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
@@ -55,15 +38,10 @@ export class GjsProcessRunner implements ProcessRunnerInterface {
                 return reject(new Error(errorMessage));
             }
 
-            // Communicate with the subprocess asynchronously.
-            // This reads stdout and stderr to completion.
             proc.communicate_utf8_async(null, null, (subprocess, result) => {
                 try {
-                    // Get the result of the communication.
-                    // In GJS, communicate_utf8_finish returns [stdout, stderr] or throws an error.
                     const [, stdout, stderr] = (subprocess as any).communicate_utf8_finish(result);
 
-                    // Check if the process exited successfully (exit code 0).
                     const status = (subprocess as any).get_exit_status();
                     const exited = (subprocess as any).get_if_exited();
 
@@ -73,7 +51,6 @@ export class GjsProcessRunner implements ProcessRunnerInterface {
                         return reject(new Error(errorMessage));
                     }
 
-                    // Resolve with stdout on success.
                     this.logger.debug(`Command '${commandLine}' executed successfully.`);
                     resolve(stdout || '');
                 } catch (error) {
