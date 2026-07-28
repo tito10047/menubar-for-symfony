@@ -1,7 +1,7 @@
 import GObject from 'gi://GObject';
 import GLib from 'gi://GLib';
 import { Button } from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import { PopupSeparatorMenuItem, PopupMenuSection, PopupImageMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupSeparatorMenuItem, PopupMenuSection, PopupImageMenuItem, PopupMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
@@ -52,6 +52,7 @@ export const Indicator = GObject.registerClass(
         declare _onSetPhpVersion: (directory: string) => void;
         declare _serverItemMap: Map<string, ServerItemInterface>;
         declare _customActions: CustomAction[];
+        declare _cliNotAvailableItem: InstanceType<typeof PopupMenuItem>;
 
         _init(params: IndicatorParams) {
             super._init(0.0, 'Symfony Menubar', false);
@@ -88,6 +89,14 @@ export const Indicator = GObject.registerClass(
 
             this._otherServersGroup = new FavoriteServersGroup();
             menu.addMenuItem(this._otherServersGroup);
+
+            this._cliNotAvailableItem = new PopupMenuItem(
+                'Symfony CLI not detected. Install it from symfony.com/download',
+                { reactive: false }
+            );
+            menu.addMenuItem(this._cliNotAvailableItem);
+            this._cliNotAvailableItem.visible = false;
+
             menu.addMenuItem(new PopupSeparatorMenuItem());
 
             // ---- Proxy section ----
@@ -222,6 +231,12 @@ export const Indicator = GObject.registerClass(
          */
         updateProxyStatus(status: ProxyStatus): void {
             this._proxyItem.updateStatus(status.isRunning, status.proxies);
+        }
+
+        updateCliAvailability(available: boolean): void {
+            this._cliNotAvailableItem.visible = !available;
+            this._otherServersGroup.visible = available;
+            this._proxyItem.visible = available;
         }
 
         _loadCustomActions(extensionPath: string): CustomAction[] {

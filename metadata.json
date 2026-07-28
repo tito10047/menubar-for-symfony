@@ -1,10 +1,9 @@
 {
   "uuid": "menubar-for-symfony@tito10047.github.com",
   "name": "Menubar for Symfony",
-  "description": "Manage local Symfony CLI servers, monitor proxy status, and switch PHP versions directly from the top panel.",
-  "shell-version": [ "49", "50" ],
-  "version": 1,
-  "type": "extension",
+  "description": "Manage local Symfony CLI servers from the top panel.\n\nRequires Symfony CLI (https://symfony.com/download) installed in PATH.\n\n* Start/stop servers\n* Open in browser\n* View logs\n* Manage PHP versions\n* Proxy status",
+  "shell-version": ["49", "50"],
   "url": "https://github.com/tito10047/menubar-for-symfony",
-  "settings-schema": "org.gnome.shell.extensions.symfony-menubar"
+  "settings-schema": "org.gnome.shell.extensions.symfony-menubar",
+  "version-name": "1.0"
 }

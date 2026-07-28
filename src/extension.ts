@@ -89,7 +89,9 @@ export default class SymfonyMenubarExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         this._refresh();
-        this._startProxyStartupPolling();
+        if (GLib.find_program_in_path('symfony') !== null) {
+            this._startProxyStartupPolling();
+        }
     }
 
     // ---- Private guards ----
@@ -271,6 +273,12 @@ export default class SymfonyMenubarExtension extends Extension {
     private _refresh(): void {
         // Cancel all active polls — fresh real data supersedes any optimistic state.
         this._pollingService?.cancelAll();
+
+        if (GLib.find_program_in_path('symfony') === null) {
+            this._i.updateCliAvailability(false);
+            return;
+        }
+        this._i.updateCliAvailability(true);
 
         const manager = this._m;
         const indicator = this._i;
