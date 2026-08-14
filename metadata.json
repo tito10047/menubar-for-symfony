@@ -5,5 +5,5 @@
   "shell-version": ["49", "50"],
   "url": "https://github.com/tito10047/menubar-for-symfony",
   "settings-schema": "org.gnome.shell.extensions.symfony-menubar",
-  "version-name": "1.0"
+  "version-name": "1.2"
 }
