@@ -34,17 +34,28 @@ Shell itself — there is nothing extra to install for it to run, and nothing is
 compiled. It is started on demand by D-Bus activation and exits again once it has
 been idle, so it is not a background service you need to manage.
 
+Its source lives at
+[tito10047/symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon).
+The D-Bus contract is mirrored in `src/shared/` of both repositories and guarded
+at runtime by `API_VERSION`, so a mismatched pair tells you to update the helper
+instead of failing obscurely.
+
 ## Installation
 
 ### 1. The helper app
 
-Download the release tarball, unpack it and run the installer. It writes only to
-your home directory and needs no root privileges:
+The helper lives in its own repository:
+**[tito10047/symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon)**.
+
+Download the latest release tarball from
+[its releases page](https://github.com/tito10047/symfony-menubar-daemon/releases),
+unpack it and run the installer. It writes only to your home directory and needs
+no root privileges:
 
 ```bash
-tar -xzf symfony-menubar-daemon-1.3.tar.gz
-cd symfony-menubar-daemon-1.3
-./daemon/install.sh
+tar -xzf symfony-menubar-daemon-1.3.0.tar.gz
+cd symfony-menubar-daemon-1.3.0
+./install.sh
 ```
 
 That installs three things:
@@ -55,7 +66,7 @@ That installs three things:
 | `~/.local/bin/symfony-menubar-daemon` | launcher, for running it by hand |
 | `~/.local/share/dbus-1/services/com.github.tito10047.SymfonyMenubar.service` | lets D-Bus start it on demand |
 
-Remove it again with `./daemon/uninstall.sh`.
+Remove it again with `./uninstall.sh`.
 
 ### 2. The extension
 

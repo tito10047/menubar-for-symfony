@@ -1,0 +1,5 @@
+# TypeScript, shell and config sources are LF everywhere, so that the shared
+# D-Bus contract stays byte-identical between this repository and the helper
+# daemon's — scripts/check-shared.sh compares the files directly.
+* text=auto eol=lf
+*.png binary
