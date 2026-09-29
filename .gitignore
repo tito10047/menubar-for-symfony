@@ -3,3 +3,5 @@
 package-lock.json
 /dist/
 /*.zip
+/*.tar.gz
+/venv*/

@@ -17,20 +17,51 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Build
-              run: npm run build && npm run compile-schemas
+            - name: Typecheck
+              run: npm run typecheck
 
-            - name: Create ZIP
+            - name: Unit tests
+              run: npm test
+
+            - name: Build
+              run: npm run build
+
+            # A release consists of two artifacts: the extension ZIP for
+            # extensions.gnome.org, and the helper tarball users install
+            # themselves. The extension does not work without the helper, so both
+            # are always published together.
+            - name: Package
               run: |
+                  set -euo pipefail
                   UUID=$(grep -Po '"uuid": "\K[^"]*' metadata.json)
-                  TMP_DIR="/tmp/ego-build"
-                  mkdir -p "$TMP_DIR"
-                  cp dist/extension.js metadata.json stylesheet.css "$TMP_DIR/"
-                  cp -r schemas "$TMP_DIR/"
-                  cd "$TMP_DIR" && zip -r "../${UUID}.zip" .
-                  mv "/tmp/${UUID}.zip" .
+                  VERSION=$(grep -Po '"version-name": "\K[^"]*' metadata.json)
+
+                  EXT_DIR="$RUNNER_TEMP/ego-build"
+                  mkdir -p "$EXT_DIR"
+                  cp dist/extension/extension.js metadata.json stylesheet.css "$EXT_DIR/"
+                  cp -r schemas "$EXT_DIR/"
+                  # GNOME 45+ compiles schemas itself.
+                  rm -f "$EXT_DIR/schemas/gschemas.compiled"
+                  (cd "$EXT_DIR" && zip -qr "$GITHUB_WORKSPACE/${UUID}.zip" .)
+
+                  DAEMON_NAME="symfony-menubar-daemon-${VERSION}"
+                  DAEMON_DIR="$RUNNER_TEMP/$DAEMON_NAME"
+                  mkdir -p "$DAEMON_DIR/dist/daemon" "$DAEMON_DIR/daemon"
+                  cp dist/daemon/symfony-menubar-daemon.js "$DAEMON_DIR/dist/daemon/"
+                  cp daemon/install.sh daemon/uninstall.sh "$DAEMON_DIR/daemon/"
+                  cp LICENSE "$DAEMON_DIR/"
+                  tar -czf "$GITHUB_WORKSPACE/${DAEMON_NAME}.tar.gz" -C "$RUNNER_TEMP" "$DAEMON_NAME"
+
+            - name: Verify the extension spawns nothing
+              run: |
+                  if grep -nE 'Gio\.Subprocess|GLib\.spawn|timeout_add' dist/extension/extension.js; then
+                      echo "The extension bundle must not spawn processes or own timers." >&2
+                      exit 1
+                  fi
 
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
-                  files: "*.zip"
+                  files: |
+                      *.zip
+                      *.tar.gz

@@ -17,31 +17,89 @@ Access, start, and stop your local Symfony servers from the menu bar. Open them 
 
 ## Requirements
 
-- gnome 49.0 or later
+- GNOME 49.0 or later
 - [Symfony CLI](https://symfony.com/download) installed and available in your `PATH`
+- The **helper app** (see below) — it ships separately from the extension
+
+## Architecture in one paragraph
+
+The extension itself never starts a process. All Symfony CLI calls happen in a
+small helper app, `symfony-menubar-daemon`, which the extension talks to over
+D-Bus. This split was requested by the GNOME extension reviewers: it keeps the
+command logic out of the gnome-shell process and out of the package published on
+extensions.gnome.org.
+
+The helper is plain JavaScript executed by `/usr/bin/gjs`, which is part of GNOME
+Shell itself — there is nothing extra to install for it to run, and nothing is
+compiled. It is started on demand by D-Bus activation and exits again once it has
+been idle, so it is not a background service you need to manage.
 
 ## Installation
-### Download (recommended)
 
-TODO: this package will be available by default distro package managers soon.
+### 1. The helper app
 
-### Build from Source
+Download the release tarball, unpack it and run the installer. It writes only to
+your home directory and needs no root privileges:
+
+```bash
+tar -xzf symfony-menubar-daemon-1.3.tar.gz
+cd symfony-menubar-daemon-1.3
+./daemon/install.sh
+```
+
+That installs three things:
+
+| Path | Purpose |
+|---|---|
+| `~/.local/share/symfony-menubar-daemon/symfony-menubar-daemon.js` | the helper itself |
+| `~/.local/bin/symfony-menubar-daemon` | launcher, for running it by hand |
+| `~/.local/share/dbus-1/services/com.github.tito10047.SymfonyMenubar.service` | lets D-Bus start it on demand |
+
+Remove it again with `./daemon/uninstall.sh`.
+
+### 2. The extension
+
+Install *Menubar for Symfony* from [extensions.gnome.org](https://extensions.gnome.org),
+or build everything from source:
 
 ```bash
 git clone https://github.com/tito10047/menubar-for-symfony
-cd symfony-cli-menubar
-
-# Build and package
-# this process will logout you from your current session
+cd menubar-for-symfony
 npm install
-./install-local.sh
 
+# Builds both halves, installs them, and logs you out so GNOME Shell reloads
+./install-local.sh
 ```
+
+If the menu says the helper app was not found, install it as described above and
+then click that message — the extension looks again without needing a restart.
+
+### Settings
+
+```bash
+SCHEMA=org.gnome.shell.extensions.symfony-menubar
+
+# How often the helper checks server and proxy state
+gsettings set $SCHEMA polling-interval 5
+
+# Terminal used for server logs; %s is replaced by the command to run.
+# Empty means: auto-detect ptyxis, gnome-terminal, kgx, konsole or xterm.
+gsettings set $SCHEMA terminal-command 'ptyxis -- %s'
+
+# Only needed if the Symfony CLI is not in a standard location
+gsettings set $SCHEMA symfony-path /opt/symfony/bin/symfony
+```
+
+`symfony-path` exists because the helper is started by D-Bus and therefore does
+not inherit your shell's `PATH`. It auto-detects `~/.symfony5/bin`,
+`~/.symfony/bin`, `~/.local/bin`, `/usr/local/bin` and `/usr/bin` first, so you
+normally never need to set it.
 
 
 ## Custom Actions
 
-You can add custom shell commands to every server's context menu by creating an `actions.json` file in the extension directory:
+You can add custom commands to every server's context menu by creating
+`~/.config/symfony-menubar/actions.json`:
 
 ```json
 [
@@ -62,13 +120,28 @@ You can add custom shell commands to every server's context menu by creating an 
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | yes | Label shown in menu |
-| `command` | yes | Shell command to run |
+| `name` | yes | Label shown in the menu. Also identifies the action, so it must be unique. |
+| `command` | yes | Command to run |
 | `path` | no | Working directory; defaults to the server's project directory |
 | `icon` | no | Symbolic icon name; defaults to `system-run-symbolic` |
 | `inline` | no | `true` = also show as an icon button in the compact server row |
 
-The command runs as: `bash -c "cd '<path>' && <command>"`.
+The command is split into arguments the way a shell would split them, and then
+executed directly in the working directory. **No shell is involved**, which is
+what makes a project path containing spaces or `;` harmless.
+
+If you do need shell features such as pipes or `&&`, ask for a shell explicitly:
+
+```json
+{ "name": "Deploy", "command": "sh -c 'npm run build && npm run deploy'" }
+```
+
+The helper logs every action it runs, and every action it skips together with the
+reason, so a misspelled entry is easy to find:
+
+```bash
+journalctl -f -o cat --identifier gjs
+```
 
 ### Magic variable `{path}`
 
@@ -94,8 +167,12 @@ Use `{path}` in both `path` and `command` fields — it is replaced at runtime w
 File location:
 
 ```
-~/.local/share/gnome-shell/extensions/menubar-for-symfony@tito10047.github.com/actions.json
+~/.config/symfony-menubar/actions.json
 ```
+
+Before version 1.3 this file lived inside the extension directory, where GNOME
+deleted it on every extension update. `daemon/install.sh` moves an existing file
+to the new location for you.
 
 Actions defined without `"inline": true` appear only in the submenu of favorite servers. Actions with `"inline": true` also appear as icon buttons in the compact (non-favorite) server rows.
 
@@ -115,11 +192,18 @@ Disable it again with:
 gsettings set org.gnome.shell.extensions.symfony-menubar debug-logging false
 ```
 
-The change takes effect immediately without restarting the extension. Errors and warnings are always logged regardless of this setting.
-To read extension logs use:
+The change takes effect immediately without restarting the extension, and it
+applies to the helper app as well. Errors and warnings are always logged
+regardless of this setting.
+
+The two halves log to two different places:
 
 ```bash
+# the extension
 journalctl -f -o cat /usr/bin/gnome-shell
+
+# the helper app
+journalctl -f -o cat --identifier gjs
 ```
 
 ## MacOS X version

@@ -71,36 +71,63 @@ cd symfony-cli-menubar
 # Install dependencies
 npm install
 
-# Build the extension
+# Build both the extension and the helper daemon
 npm run build
 
 # Compile GSettings schemas (required for settings to work)
 npm run compile-schemas
 
-# Install locally for testing
+# Install both locally for testing
 # WARNING: This script will force a logout from your current GNOME session!
 ./install-local.sh
 ```
 
+The extension needs the helper daemon to do anything. `install-local.sh` installs
+both; to install only the helper after a change, run `npm run install-daemon`.
+
 ## Project Structure
+
+The project is **two programs** built from one source tree: the GNOME Shell
+extension, and a helper daemon that runs the Symfony CLI on its behalf. They talk
+over D-Bus. The extension starts no processes and owns no timers — that split was
+required by the extensions.gnome.org reviewers, so please do not undo it.
+
 ```
 symfony-cli-menubar/
-├── src/                    # TypeScript source files
-│   ├── extension.ts        # Main extension entry point
-│   ├── core/               # Business logic (parsers, services, commands)
-│   └── ui/                 # GNOME Shell UI components (Indicator, MenuItems)
+├── src/
+│   ├── shared/             # Compiled into both programs
+│   │   ├── dbus/           # The D-Bus contract, wire shapes and marshalling
+│   │   ├── dto/            # Plain data types
+│   │   └── logging/, interfaces/, errors.ts
+│   ├── extension/          # -> dist/extension/extension.js
+│   │   ├── extension.ts    # GNOME lifecycle; wires the menu to the daemon
+│   │   ├── core/dbus/      # Bus connection, proxy, typed client
+│   │   ├── core/services/  # GSettings and .php-version access
+│   │   └── ui/             # GNOME Shell UI components (Indicator, MenuItems)
+│   └── daemon/             # -> dist/daemon/symfony-menubar-daemon.js
+│       ├── main.ts         # CLI, bus name ownership, --install-service
+│       ├── core/           # Command classes, parsers, the only subprocesses
+│       └── shell/          # argv building (never shell strings)
+├── daemon/                 # install.sh / uninstall.sh for the helper
 ├── schemas/                # GSettings XML schema (org.gnome.shell.extensions.symfony-menubar)
-├── tests/                  # Jest tests
+├── tests/
 │   ├── unit/               # 100% mocked unit tests (fast, no system calls)
-│   └── integration/        # Tests calling real symfony-cli binary
+│   ├── integration/        # Tests calling the real symfony-cli binary
+│   └── dbus/               # End-to-end test of the daemon on a private bus
+├── scripts/build.js        # esbuild bundling for both targets
 ├── dist/                   # Bundled JavaScript output (esbuild)
 ├── assets/                 # Static assets (icons)
 └── metadata.json           # GNOME Shell extension metadata
 ```
 
+Build a single target while working on it: `npm run build extension` or
+`npm run build daemon`. `npm run typecheck` is the quality gate — the daemon's
+tsconfig deliberately hides St/Clutter, so shell API cannot leak into it.
+
 ## Testing Strategy
-- **Unit Tests (`tests/unit/`)**: Use mocks for everything. No shell or system calls. These must be fast and environment-independent.
+- **Unit Tests (`tests/unit/`)**: Use mocks for everything. No shell or system calls. These must be fast and environment-independent. `ProcessRunnerInterface` is the daemon's seam, `DaemonClientInterface` the extension's.
 - **Integration Tests (`tests/integration/`)**: These call the real `symfony` CLI. Run them with `RUN_INTEGRATION=1 npm run test:integration`.
+- **D-Bus End-to-End (`tests/dbus/`)**: `npm run test:dbus` runs the bundled daemon under `dbus-run-session` and drives it with `gdbus`. This covers the exported interface, variant marshalling, error mapping and signals — none of which can run under Node, because the girs packages are types only.
 - **Debug Mode (tests)**: To see raw communication with the shell during tests, use `DEBUG=1`.
 - **Debug Mode (extension)**: To see verbose extension logs in the system journal, enable the `debug-logging` GSettings key (see [Debug Logging](../README.md#debug-logging) in the README). Errors and warnings are always logged regardless of this setting.
 
