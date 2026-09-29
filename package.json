@@ -5,11 +5,14 @@
   "main": "dist/extension.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && npx eslint --fix 'dist/**/*.js' && npx prettier --write 'dist/**/*.js'",
-    "watch": "tsc --watch",
+    "build": "node scripts/build.js",
+    "watch": "node scripts/build.js --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.extension.json && tsc --noEmit -p tsconfig.daemon.json",
     "test": "jest tests/unit",
     "test:integration": "RUN_INTEGRATION=1 jest tests/integration",
-    "compile-schemas": "glib-compile-schemas schemas/"
+    "test:dbus": "tests/dbus/run.sh",
+    "compile-schemas": "glib-compile-schemas schemas/",
+    "install-daemon": "npm run build && daemon/install.sh"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",

@@ -1,27 +1,19 @@
 import { execFile } from 'child_process';
-import { ProcessRunnerInterface } from '../../src/core/interfaces/ProcessRunnerInterface';
+import { ProcessRunnerInterface } from '../../src/daemon/core/interfaces/ProcessRunnerInterface';
 
 /**
- * NodeProcessRunner implements ProcessRunnerInterface using Node.js child_process.
- * Used exclusively for integration tests running in Node environment.
+ * Implements ProcessRunnerInterface with Node's child_process, for integration
+ * tests that exercise the command classes against the real Symfony CLI. The
+ * production implementation is GjsProcessRunner, which cannot run under Node.
  */
 export class NodeProcessRunner implements ProcessRunnerInterface {
-    private readonly binaryPath: string;
+    constructor(private readonly symfonyBinary: string = 'symfony') {}
 
-    constructor(binaryPath: string = 'symfony') {
-        this.binaryPath = binaryPath;
+    run(args: string[]): Promise<string> {
+        return this.runBinary(this.symfonyBinary, args);
     }
 
-    async run(command: string[]): Promise<string> {
-        let binary = this.binaryPath;
-        let args = command;
-
-        // If the first argument is an absolute path, use it as binary
-        if (command.length > 0 && command[0].startsWith('/')) {
-            binary = command[0];
-            args = command.slice(1);
-        }
-
+    runBinary(binary: string, args: string[]): Promise<string> {
         const isDebug = process.env.DEBUG === '1';
         if (isDebug) {
             process.stderr.write(`\n[DEBUG] Running command: ${binary} ${args.join(' ')}\n`);
@@ -33,15 +25,14 @@ export class NodeProcessRunner implements ProcessRunnerInterface {
                 if (isDebug && stderr) process.stderr.write(`[DEBUG] STDERR:\n${stderr}\n`);
 
                 if (error) {
-                    // Direct write to stderr to bypass Jest's log capture for maximum visibility
-                    process.stderr.write(`\n--- SYMFONY CLI ERROR ---\n`);
+                    // Written straight to stderr to bypass Jest's log capture.
+                    process.stderr.write('\n--- SUBPROCESS ERROR ---\n');
                     process.stderr.write(`Command: ${binary} ${args.join(' ')}\n`);
-                    process.stderr.write(`Exit Code: ${error.code}\n`);
+                    process.stderr.write(`Exit code: ${error.code}\n`);
                     if (stderr) process.stderr.write(`STDERR:\n${stderr}\n`);
                     if (stdout) process.stderr.write(`STDOUT:\n${stdout}\n`);
-                    process.stderr.write(`--- END SYMFONY CLI ERROR ---\n\n`);
+                    process.stderr.write('--- END SUBPROCESS ERROR ---\n\n');
 
-                    // Always reject on error, include stderr/stdout in the message
                     reject(new Error(`Command failed with code ${error.code}: ${stderr || stdout || error.message}`));
                     return;
                 }
