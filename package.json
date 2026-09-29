@@ -7,12 +7,11 @@
   "scripts": {
     "build": "node scripts/build.js",
     "watch": "node scripts/build.js --watch",
-    "typecheck": "tsc --noEmit -p tsconfig.extension.json && tsc --noEmit -p tsconfig.daemon.json",
+    "typecheck": "tsc --noEmit",
     "test": "jest tests/unit",
-    "test:integration": "RUN_INTEGRATION=1 jest tests/integration --runInBand",
-    "test:dbus": "tests/dbus/run.sh",
-    "compile-schemas": "glib-compile-schemas schemas/",
-    "install-daemon": "npm run build && daemon/install.sh"
+    "check": "npm run typecheck && npm test && npm run build",
+    "check-contract": "scripts/check-contract.sh",
+    "compile-schemas": "glib-compile-schemas schemas/"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",

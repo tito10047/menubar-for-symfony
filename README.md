@@ -78,7 +78,10 @@ git clone https://github.com/tito10047/menubar-for-symfony
 cd menubar-for-symfony
 npm install
 
-# Builds both halves, installs them, and logs you out so GNOME Shell reloads
+# The helper lives in its own repository; clone it alongside
+git clone https://github.com/tito10047/symfony-menubar-daemon ../symfony-menubar-daemon
+
+# Builds and installs both, then asks before reloading your session
 ./install-local.sh
 ```
 
@@ -182,8 +185,8 @@ File location:
 ```
 
 Before version 1.3 this file lived inside the extension directory, where GNOME
-deleted it on every extension update. `daemon/install.sh` moves an existing file
-to the new location for you.
+deleted it on every extension update. The helper's `install.sh` moves an existing
+file to the new location for you.
 
 Actions defined without `"inline": true` appear only in the submenu of favorite servers. Actions with `"inline": true` also appear as icon buttons in the compact (non-favorite) server rows.
 

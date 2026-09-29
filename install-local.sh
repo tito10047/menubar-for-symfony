@@ -1,36 +1,45 @@
 #!/bin/bash
 #
-# Builds and installs both halves of the project for local testing.
+# Builds and installs the extension for local testing.
 #
-# The project is two programs: the GNOME Shell extension, and the helper daemon
-# that runs the Symfony CLI for it. Only the extension needs a session reload —
-# the daemon can be swapped out while you are logged in, which is why
-# --daemon-only exists and is the fast path while working on it.
+# The extension needs the helper daemon, which lives in its own repository:
+#   https://github.com/tito10047/symfony-menubar-daemon
+#
+# If that repository is checked out next to this one, this script builds and
+# installs it too. Only the extension needs a session reload — the helper can be
+# swapped while you are logged in, which is what --helper-only is for.
 #
 # Usage:
-#   ./install-local.sh                # check, build, install both, offer to reload
-#   ./install-local.sh --daemon-only  # build and swap the helper, no reload needed
-#   ./install-local.sh --skip-checks  # skip typecheck and unit tests
-#   ./install-local.sh --yes          # reload the session without asking
-#   ./install-local.sh --no-reload    # install only, never reload
+#   ./install-local.sh                 # check, build, install both, offer to reload
+#   ./install-local.sh --helper-only   # rebuild and swap the helper, no reload needed
+#   ./install-local.sh --skip-helper   # extension only, leave the helper alone
+#   ./install-local.sh --skip-checks   # skip typecheck and unit tests
+#   ./install-local.sh --yes           # reload the session without asking
+#   ./install-local.sh --no-reload     # install only, never reload
+#
+# Point HELPER_REPO at the helper checkout if it is not ../symfony-menubar-daemon.
 
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 BUS_NAME="com.github.tito10047.SymfonyMenubar"
-DAEMON_ONLY=false
+HELPER_REPO="${HELPER_REPO:-../symfony-menubar-daemon}"
+
+HELPER_ONLY=false
+SKIP_HELPER=false
 SKIP_CHECKS=false
 ASSUME_YES=false
 NO_RELOAD=false
 
 for argument in "$@"; do
     case "$argument" in
-        --daemon-only) DAEMON_ONLY=true ;;
+        --helper-only) HELPER_ONLY=true ;;
+        --skip-helper) SKIP_HELPER=true ;;
         --skip-checks) SKIP_CHECKS=true ;;
         --yes|-y)      ASSUME_YES=true ;;
         --no-reload)   NO_RELOAD=true ;;
-        --help|-h)     sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; exit 0 ;;
+        --help|-h)     sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; exit 0 ;;
         *)             echo "Unknown option: $argument (try --help)" >&2; exit 2 ;;
     esac
 done
@@ -45,12 +54,47 @@ for tool in node npm gjs glib-compile-schemas gnome-extensions zip; do
     fi
 done
 
+# --- helper daemon --------------------------------------------------------
+install_helper() {
+    if [ ! -d "$HELPER_REPO" ]; then
+        echo "The helper checkout was not found at $HELPER_REPO."
+        echo "Clone it, or install a release tarball by hand:"
+        echo "  git clone https://github.com/tito10047/symfony-menubar-daemon $HELPER_REPO"
+        return 1
+    fi
+
+    (
+        cd "$HELPER_REPO"
+        [ -d node_modules ] || npm install
+        npm run build
+        ./install.sh
+    )
+
+    # A helper from an earlier build may still own the bus name. Handing the name
+    # over to the new build is cleaner than killing the old process.
+    if gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+            --method org.freedesktop.DBus.GetNameOwner "$BUS_NAME" >/dev/null 2>&1; then
+        echo "Replacing the running helper with the new build..."
+        setsid "$HOME/.local/bin/symfony-menubar-daemon" --replace >/dev/null 2>&1 &
+        sleep 1
+    fi
+}
+
+if [ "$HELPER_ONLY" = true ]; then
+    step "Installing the helper daemon"
+    install_helper
+    step "Done"
+    echo "The helper has been replaced. No session reload is needed —"
+    echo "close and reopen the menu to see the new behaviour."
+    exit 0
+fi
+
+# --- checks ---------------------------------------------------------------
 if [ ! -d node_modules ]; then
     step "Installing npm dependencies"
     npm install
 fi
 
-# --- checks ---------------------------------------------------------------
 if [ "$SKIP_CHECKS" = false ]; then
     step "Typechecking"
     npm run typecheck
@@ -60,32 +104,13 @@ if [ "$SKIP_CHECKS" = false ]; then
 fi
 
 # --- build ----------------------------------------------------------------
-step "Building"
-if [ "$DAEMON_ONLY" = true ]; then
-    npm run build daemon
-else
-    npm run build
-    npm run compile-schemas
-fi
+step "Building the extension"
+npm run build
+npm run compile-schemas
 
-# --- helper daemon --------------------------------------------------------
-step "Installing the helper daemon"
-./daemon/install.sh
-
-# A daemon from an earlier build may still own the bus name. Handing the name
-# over to the new build is cleaner than killing the old process.
-if gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
-        --method org.freedesktop.DBus.GetNameOwner "$BUS_NAME" >/dev/null 2>&1; then
-    echo "Replacing the running helper with the new build..."
-    setsid "$HOME/.local/bin/symfony-menubar-daemon" --replace >/dev/null 2>&1 &
-    sleep 1
-fi
-
-if [ "$DAEMON_ONLY" = true ]; then
-    step "Done"
-    echo "The helper has been replaced. No session reload is needed —"
-    echo "close and reopen the menu to see the new behaviour."
-    exit 0
+if [ "$SKIP_HELPER" = false ]; then
+    step "Installing the helper daemon"
+    install_helper || echo "Continuing without the helper; the menu will say it is missing."
 fi
 
 # --- extension ------------------------------------------------------------

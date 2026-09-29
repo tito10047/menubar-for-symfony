@@ -1,4 +1,4 @@
-import { FavoritesRepository } from '../../../../src/extension/core/services/FavoritesRepository';
+import { FavoritesRepository } from '../../../src/extension/core/services/FavoritesRepository';
 
 interface MockSettings {
     get_strv: jest.Mock;

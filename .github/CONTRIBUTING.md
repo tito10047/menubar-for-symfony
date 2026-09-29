@@ -71,64 +71,72 @@ cd symfony-cli-menubar
 # Install dependencies
 npm install
 
-# Build both the extension and the helper daemon
+# Clone the helper service next to it — the extension needs it to do anything
+git clone https://github.com/tito10047/symfony-menubar-daemon ../symfony-menubar-daemon
+
+# Build the extension
 npm run build
 
 # Compile GSettings schemas (required for settings to work)
 npm run compile-schemas
 
-# Install both locally for testing
-# WARNING: This script will force a logout from your current GNOME session!
+# Build and install both, then reload the session (it asks first)
 ./install-local.sh
 ```
 
-The extension needs the helper daemon to do anything. `install-local.sh` installs
-both; to install only the helper after a change, run `npm run install-daemon`.
+While working on the helper, `./install-local.sh --helper-only` rebuilds and swaps
+it without touching the extension — no session reload needed.
 
 ## Project Structure
 
-The project is **two programs** built from one source tree: the GNOME Shell
-extension, and a helper daemon that runs the Symfony CLI on its behalf. They talk
-over D-Bus. The extension starts no processes and owns no timers — that split was
-required by the extensions.gnome.org reviewers, so please do not undo it.
+The project is split across **two repositories**. This one holds the GNOME Shell
+extension; everything that runs the Symfony CLI lives in
+[symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon), and
+the two talk over the session D-Bus.
+
+That split was required by the extensions.gnome.org reviewers, so please do not
+undo it: **the extension must never spawn a process or own a main loop timer.**
+`publish.sh` and the release workflow assert this against the built bundle.
 
 ```
-symfony-cli-menubar/
+menubar-for-symfony/
 ├── src/
-│   ├── shared/             # Compiled into both programs
+│   ├── shared/             # Mirrored with the helper repository
 │   │   ├── dbus/           # The D-Bus contract, wire shapes and marshalling
 │   │   ├── dto/            # Plain data types
-│   │   └── logging/, interfaces/, errors.ts
-│   ├── extension/          # -> dist/extension/extension.js
-│   │   ├── extension.ts    # GNOME lifecycle; wires the menu to the daemon
-│   │   ├── core/dbus/      # Bus connection, proxy, typed client
-│   │   ├── core/services/  # GSettings and .php-version access
-│   │   └── ui/             # GNOME Shell UI components (Indicator, MenuItems)
-│   └── daemon/             # -> dist/daemon/symfony-menubar-daemon.js
-│       ├── main.ts         # CLI, bus name ownership, --install-service
-│       ├── core/           # Command classes, parsers, the only subprocesses
-│       └── shell/          # argv building (never shell strings)
-├── daemon/                 # install.sh / uninstall.sh for the helper
+│   │   └── logging/, interfaces/, types/, errors.ts
+│   └── extension/
+│       ├── extension.ts    # GNOME lifecycle; wires the menu to the helper
+│       ├── core/dbus/      # Bus connection, proxy, typed client
+│       ├── core/services/  # GSettings and .php-version access
+│       └── ui/             # GNOME Shell UI components (Indicator, MenuItems)
 ├── schemas/                # GSettings XML schema (org.gnome.shell.extensions.symfony-menubar)
-├── tests/
-│   ├── unit/               # 100% mocked unit tests (fast, no system calls)
-│   ├── integration/        # Tests calling the real symfony-cli binary
-│   └── dbus/               # End-to-end test of the daemon on a private bus
-├── scripts/build.js        # esbuild bundling for both targets
-├── dist/                   # Bundled JavaScript output (esbuild)
+├── tests/unit/             # 100% mocked unit tests (fast, no system calls)
+├── scripts/
+│   ├── build.js            # esbuild bundling
+│   └── check-contract.sh   # Diffs src/shared against the helper checkout
+├── dist/extension/         # Bundled output (esbuild, never minified)
 ├── assets/                 # Static assets (icons)
 └── metadata.json           # GNOME Shell extension metadata
+
+../symfony-menubar-daemon/  # The helper service, cloned separately
 ```
 
-Build a single target while working on it: `npm run build extension` or
-`npm run build daemon`. `npm run typecheck` is the quality gate — the daemon's
-tsconfig deliberately hides St/Clutter, so shell API cannot leak into it.
+### Changing the D-Bus contract
+
+`src/shared/` exists in both repositories and both compile it, which is what keeps
+the interface, its field names and its marshalling from drifting apart. After
+changing anything there:
+
+1. copy the files to the other repository,
+2. run `npm run check-contract` to confirm they match,
+3. bump `API_VERSION` in `src/shared/dbus/protocol.ts` if the change is
+   incompatible — the extension compares it with the daemon's at runtime and tells
+   the user to update the helper rather than failing obscurely.
 
 ## Testing Strategy
-- **Unit Tests (`tests/unit/`)**: Use mocks for everything. No shell or system calls. These must be fast and environment-independent. `ProcessRunnerInterface` is the daemon's seam, `DaemonClientInterface` the extension's.
-- **Integration Tests (`tests/integration/`)**: These call the real `symfony` CLI. Run them with `RUN_INTEGRATION=1 npm run test:integration`.
-- **D-Bus End-to-End (`tests/dbus/`)**: `npm run test:dbus` runs the bundled daemon under `dbus-run-session` and drives it with `gdbus`. This covers the exported interface, variant marshalling, error mapping and signals — none of which can run under Node, because the girs packages are types only.
-- **Debug Mode (tests)**: To see raw communication with the shell during tests, use `DEBUG=1`.
+- **Unit Tests (`tests/unit/`)**: Use mocks for everything. No shell or system calls. These must be fast and environment-independent. `DaemonClientInterface` is the seam to mock.
+- **Anything needing a real bus, variant or subprocess** is tested in the helper repository, where `npm run test:dbus` drives the built daemon under `dbus-run-session` with `gdbus`. It cannot be tested here: the `@girs` packages are type definitions only, so GJS API is not callable under Node.
 - **Debug Mode (extension)**: To see verbose extension logs in the system journal, enable the `debug-logging` GSettings key (see [Debug Logging](../README.md#debug-logging) in the README). Errors and warnings are always logged regardless of this setting.
 
 ## Code Style Guidelines

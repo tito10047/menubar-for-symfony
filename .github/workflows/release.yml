@@ -26,32 +26,9 @@ jobs:
             - name: Build
               run: npm run build
 
-            # A release consists of two artifacts: the extension ZIP for
-            # extensions.gnome.org, and the helper tarball users install
-            # themselves. The extension does not work without the helper, so both
-            # are always published together.
-            - name: Package
-              run: |
-                  set -euo pipefail
-                  UUID=$(grep -Po '"uuid": "\K[^"]*' metadata.json)
-                  VERSION=$(grep -Po '"version-name": "\K[^"]*' metadata.json)
-
-                  EXT_DIR="$RUNNER_TEMP/ego-build"
-                  mkdir -p "$EXT_DIR"
-                  cp dist/extension/extension.js metadata.json stylesheet.css "$EXT_DIR/"
-                  cp -r schemas "$EXT_DIR/"
-                  # GNOME 45+ compiles schemas itself.
-                  rm -f "$EXT_DIR/schemas/gschemas.compiled"
-                  (cd "$EXT_DIR" && zip -qr "$GITHUB_WORKSPACE/${UUID}.zip" .)
-
-                  DAEMON_NAME="symfony-menubar-daemon-${VERSION}"
-                  DAEMON_DIR="$RUNNER_TEMP/$DAEMON_NAME"
-                  mkdir -p "$DAEMON_DIR/dist/daemon" "$DAEMON_DIR/daemon"
-                  cp dist/daemon/symfony-menubar-daemon.js "$DAEMON_DIR/dist/daemon/"
-                  cp daemon/install.sh daemon/uninstall.sh "$DAEMON_DIR/daemon/"
-                  cp LICENSE "$DAEMON_DIR/"
-                  tar -czf "$GITHUB_WORKSPACE/${DAEMON_NAME}.tar.gz" -C "$RUNNER_TEMP" "$DAEMON_NAME"
-
+            # The extensions.gnome.org reviewers asked for this property; assert it
+            # rather than trusting it. All Symfony CLI handling belongs to the
+            # helper daemon in its own repository.
             - name: Verify the extension spawns nothing
               run: |
                   if grep -nE 'Gio\.Subprocess|GLib\.spawn|timeout_add' dist/extension/extension.js; then
@@ -59,9 +36,25 @@ jobs:
                       exit 1
                   fi
 
+            - name: Package
+              run: |
+                  set -euo pipefail
+                  UUID=$(grep -Po '"uuid": "\K[^"]*' metadata.json)
+
+                  BUILD_DIR="$RUNNER_TEMP/ego-build"
+                  mkdir -p "$BUILD_DIR"
+                  cp dist/extension/extension.js metadata.json stylesheet.css "$BUILD_DIR/"
+                  cp -r schemas "$BUILD_DIR/"
+                  # GNOME 45+ compiles schemas itself.
+                  rm -f "$BUILD_DIR/schemas/gschemas.compiled"
+                  (cd "$BUILD_DIR" && zip -qr "$GITHUB_WORKSPACE/${UUID}.zip" .)
+
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
-                  files: |
-                      *.zip
-                      *.tar.gz
+                  files: '*.zip'
+                  body: |
+                      This release also needs a matching **helper app**:
+                      https://github.com/tito10047/symfony-menubar-daemon/releases
+
+                      The extension will not work without it.

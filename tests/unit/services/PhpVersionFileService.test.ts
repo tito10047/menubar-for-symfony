@@ -1,8 +1,8 @@
 import {
     PhpVersionFileService,
     GLibFileLike,
-} from '../../../../src/extension/core/services/PhpVersionFileService';
-import { LoggerInterface } from '../../../../src/shared/interfaces/LoggerInterface';
+} from '../../../src/extension/core/services/PhpVersionFileService';
+import { LoggerInterface } from '../../../src/shared/interfaces/LoggerInterface';
 
 function makeGLibMock(overrides: Partial<GLibFileLike> = {}): jest.Mocked<GLibFileLike> {
     return {
