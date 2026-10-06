@@ -155,7 +155,16 @@ echo "log back in."
 echo
 
 if [ "$ASSUME_YES" = false ]; then
-    read -rp "Log out now? [y/N] " answer
+    # Without a terminal there is nobody to answer, and `read` would fail —
+    # which under `set -e` would end the script without saying anything.
+    if [ ! -t 0 ]; then
+        echo "Not running interactively, so your session is left alone."
+        echo "Log out when you are ready, or re-run with --yes."
+        exit 0
+    fi
+
+    answer=""
+    read -rp "Log out now? [y/N] " answer || true
     case "$answer" in
         [yY]|[yY][eE][sS]) ;;
         *) echo "Left your session alone. Log out when you are ready."; exit 0 ;;

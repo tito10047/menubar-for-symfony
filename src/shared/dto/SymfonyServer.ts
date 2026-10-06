@@ -4,6 +4,5 @@ export interface SymfonyServer {
     url: string;
     domain?: string;
     isRunning: boolean;
-    pid?: number;
     phpVersion?: string;
 }

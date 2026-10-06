@@ -54,8 +54,6 @@ export interface ServerWire {
     /** Empty when the server has no proxy domain attached. */
     domain: string;
     isRunning: boolean;
-    /** Zero when the server is not running. */
-    pid: number;
 }
 
 export const SERVER_SPEC = {
@@ -64,7 +62,6 @@ export const SERVER_SPEC = {
     url: 's',
     domain: 's',
     isRunning: 'b',
-    pid: 'u',
 } as const satisfies WireSpec<ServerWire>;
 
 export function toServerWire(server: SymfonyServer): ServerWire {
@@ -74,7 +71,6 @@ export function toServerWire(server: SymfonyServer): ServerWire {
         url: server.url,
         domain: server.domain ?? '',
         isRunning: server.isRunning,
-        pid: server.pid ?? 0,
     };
 }
 
@@ -85,7 +81,6 @@ export function fromServerWire(wire: ServerWire): SymfonyServer {
         url: wire.url,
         domain: wire.domain === '' ? undefined : wire.domain,
         isRunning: wire.isRunning,
-        pid: wire.pid === 0 ? undefined : wire.pid,
     };
 }
 
