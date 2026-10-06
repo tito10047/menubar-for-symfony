@@ -90,18 +90,29 @@ then click that message — the extension looks again without needing a restart.
 
 ### Settings
 
+An extension's GSettings schema is compiled into its own directory, not into the
+system one, so `gsettings` needs to be told where to look:
+
+```bash
+SCHEMA_DIR=~/.local/share/gnome-shell/extensions/menubar-for-symfony@tito10047.github.com/schemas
+alias sfgs='gsettings --schemadir "$SCHEMA_DIR"'
+```
+
 ```bash
 SCHEMA=org.gnome.shell.extensions.symfony-menubar
 
 # How often the helper checks server and proxy state
-gsettings set $SCHEMA polling-interval 5
+sfgs set $SCHEMA polling-interval 5
 
 # Terminal used for server logs; %s is replaced by the command to run.
 # Empty means: auto-detect ptyxis, gnome-terminal, kgx, konsole or xterm.
-gsettings set $SCHEMA terminal-command 'ptyxis -- %s'
+sfgs set $SCHEMA terminal-command 'ptyxis -- %s'
 
 # Only needed if the Symfony CLI is not in a standard location
-gsettings set $SCHEMA symfony-path /opt/symfony/bin/symfony
+sfgs set $SCHEMA symfony-path /opt/symfony/bin/symfony
+
+# Read a value back
+sfgs get $SCHEMA polling-interval
 ```
 
 `symfony-path` exists because the helper is started by D-Bus and therefore does
@@ -194,16 +205,17 @@ Actions defined without `"inline": true` appear only in the submenu of favorite 
 
 Verbose logging (debug/info messages) is **disabled by default** to keep the system journal clean.
 
-Enable it when troubleshooting via GSettings:
+Enable it when troubleshooting via GSettings (see
+[Settings](#settings) for the `sfgs` alias):
 
 ```bash
-gsettings set org.gnome.shell.extensions.symfony-menubar debug-logging true
+sfgs set org.gnome.shell.extensions.symfony-menubar debug-logging true
 ```
 
 Disable it again with:
 
 ```bash
-gsettings set org.gnome.shell.extensions.symfony-menubar debug-logging false
+sfgs set org.gnome.shell.extensions.symfony-menubar debug-logging false
 ```
 
 The change takes effect immediately without restarting the extension, and it
