@@ -7,6 +7,10 @@ on:
 jobs:
     release:
         runs-on: ubuntu-latest
+        # The default token is read-only here, so creating the release fails
+        # after a green build without this.
+        permissions:
+            contents: write
         steps:
             - uses: actions/checkout@v4
 
