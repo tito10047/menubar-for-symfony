@@ -9,7 +9,7 @@
  * minified, so the output stays reviewable line by line.
  *
  * The helper daemon is built from its own repository:
- * https://github.com/tito10047/symfony-menubar-daemon
+ * https://github.com/tito10047/menubar-for-symfony-daemon
  */
 
 import { build, context } from 'esbuild';

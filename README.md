@@ -35,7 +35,7 @@ compiled. It is started on demand by D-Bus activation and exits again once it ha
 been idle, so it is not a background service you need to manage.
 
 Its source lives at
-[tito10047/symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon).
+[tito10047/menubar-for-symfony-daemon](https://github.com/tito10047/menubar-for-symfony-daemon).
 The D-Bus contract is mirrored in `src/shared/` of both repositories and guarded
 at runtime by `API_VERSION`, so a mismatched pair tells you to update the helper
 instead of failing obscurely.
@@ -45,16 +45,16 @@ instead of failing obscurely.
 ### 1. The helper app
 
 The helper lives in its own repository:
-**[tito10047/symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon)**.
+**[tito10047/menubar-for-symfony-daemon](https://github.com/tito10047/menubar-for-symfony-daemon)**.
 
 Download the latest release tarball from
-[its releases page](https://github.com/tito10047/symfony-menubar-daemon/releases),
+[its releases page](https://github.com/tito10047/menubar-for-symfony-daemon/releases),
 unpack it and run the installer. It writes only to your home directory and needs
 no root privileges:
 
 ```bash
-tar -xzf symfony-menubar-daemon-1.3.0.tar.gz
-cd symfony-menubar-daemon-1.3.0
+tar -xzf menubar-for-symfony-daemon-1.3.0.tar.gz
+cd menubar-for-symfony-daemon-1.3.0
 ./install.sh
 ```
 
@@ -62,9 +62,9 @@ That installs three things:
 
 | Path | Purpose |
 |---|---|
-| `~/.local/share/symfony-menubar-daemon/symfony-menubar-daemon.js` | the helper itself |
-| `~/.local/bin/symfony-menubar-daemon` | launcher, for running it by hand |
-| `~/.local/share/dbus-1/services/com.github.tito10047.SymfonyMenubar.service` | lets D-Bus start it on demand |
+| `~/.local/share/menubar-for-symfony-daemon/menubar-for-symfony-daemon.js` | the helper itself |
+| `~/.local/bin/menubar-for-symfony-daemon` | launcher, for running it by hand |
+| `~/.local/share/dbus-1/services/com.github.tito10047.MenubarForSymfony.service` | lets D-Bus start it on demand |
 
 Remove it again with `./uninstall.sh`.
 
@@ -99,7 +99,7 @@ alias sfgs='gsettings --schemadir "$SCHEMA_DIR"'
 ```
 
 ```bash
-SCHEMA=org.gnome.shell.extensions.symfony-menubar
+SCHEMA=org.gnome.shell.extensions.menubar-for-symfony
 
 # How often the helper checks server and proxy state
 sfgs set $SCHEMA polling-interval 5
@@ -124,7 +124,7 @@ normally never need to set it.
 ## Custom Actions
 
 You can add custom commands to every server's context menu by creating
-`~/.config/symfony-menubar/actions.json`:
+`~/.config/menubar-for-symfony/actions.json`:
 
 ```json
 [
@@ -192,7 +192,7 @@ Use `{path}` in both `path` and `command` fields — it is replaced at runtime w
 File location:
 
 ```
-~/.config/symfony-menubar/actions.json
+~/.config/menubar-for-symfony/actions.json
 ```
 
 Before version 1.3 this file lived inside the extension directory, where GNOME
@@ -209,13 +209,13 @@ Enable it when troubleshooting via GSettings (see
 [Settings](#settings) for the `sfgs` alias):
 
 ```bash
-sfgs set org.gnome.shell.extensions.symfony-menubar debug-logging true
+sfgs set org.gnome.shell.extensions.menubar-for-symfony debug-logging true
 ```
 
 Disable it again with:
 
 ```bash
-sfgs set org.gnome.shell.extensions.symfony-menubar debug-logging false
+sfgs set org.gnome.shell.extensions.menubar-for-symfony debug-logging false
 ```
 
 The change takes effect immediately without restarting the extension, and it

@@ -1,5 +1,5 @@
 {
-  "name": "symfony-cli-menubar",
+  "name": "menubar-for-symfony",
   "version": "1.0.0",
   "description": "GNOME Shell extension for Symfony CLI",
   "main": "dist/extension.js",

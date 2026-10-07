@@ -3,7 +3,7 @@
 # Produces the extension ZIP for extensions.gnome.org.
 #
 # The helper daemon is released from its own repository:
-# https://github.com/tito10047/symfony-menubar-daemon
+# https://github.com/tito10047/menubar-for-symfony-daemon
 # Both must be published together — the extension refuses to talk to a helper
 # reporting a different API_VERSION. See publish.md.
 
@@ -40,5 +40,5 @@ fi
 echo "Extension ZIP for version $VERSION: $ZIP"
 unzip -l "$ZIP" | sed 's/^/  /'
 echo
-echo "Remember to release a matching symfony-menubar-daemon:"
-echo "  https://github.com/tito10047/symfony-menubar-daemon/releases"
+echo "Remember to release a matching menubar-for-symfony-daemon:"
+echo "  https://github.com/tito10047/menubar-for-symfony-daemon/releases"

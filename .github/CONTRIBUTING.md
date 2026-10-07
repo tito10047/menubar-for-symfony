@@ -65,14 +65,14 @@ Be respectful, constructive, and professional in all interactions.
 ### Building from Source
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/symfony-cli-menubar.git
-cd symfony-cli-menubar
+git clone https://github.com/YOUR_USERNAME/menubar-for-symfony.git
+cd menubar-for-symfony
 
 # Install dependencies
 npm install
 
 # Clone the helper service next to it — the extension needs it to do anything
-git clone https://github.com/tito10047/symfony-menubar-daemon ../symfony-menubar-daemon
+git clone https://github.com/tito10047/menubar-for-symfony-daemon ../menubar-for-symfony-daemon
 
 # Build the extension
 npm run build
@@ -91,7 +91,7 @@ it without touching the extension — no session reload needed.
 
 The project is split across **two repositories**. This one holds the GNOME Shell
 extension; everything that runs the Symfony CLI lives in
-[symfony-menubar-daemon](https://github.com/tito10047/symfony-menubar-daemon), and
+[menubar-for-symfony-daemon](https://github.com/tito10047/menubar-for-symfony-daemon), and
 the two talk over the session D-Bus.
 
 That split was required by the extensions.gnome.org reviewers, so please do not
@@ -110,7 +110,7 @@ menubar-for-symfony/
 │       ├── core/dbus/      # Bus connection, proxy, typed client
 │       ├── core/services/  # GSettings and .php-version access
 │       └── ui/             # GNOME Shell UI components (Indicator, MenuItems)
-├── schemas/                # GSettings XML schema (org.gnome.shell.extensions.symfony-menubar)
+├── schemas/                # GSettings XML schema (org.gnome.shell.extensions.menubar-for-symfony)
 ├── tests/unit/             # 100% mocked unit tests (fast, no system calls)
 ├── scripts/
 │   ├── build.js            # esbuild bundling
@@ -119,7 +119,7 @@ menubar-for-symfony/
 ├── assets/                 # Static assets (icons)
 └── metadata.json           # GNOME Shell extension metadata
 
-../symfony-menubar-daemon/  # The helper service, cloned separately
+../menubar-for-symfony-daemon/  # The helper service, cloned separately
 ```
 
 ### Changing the D-Bus contract

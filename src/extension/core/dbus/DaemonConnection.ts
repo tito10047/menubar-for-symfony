@@ -9,7 +9,7 @@ import { LoggerInterface } from '../../../shared/interfaces/LoggerInterface.js';
 import { formatError } from '../../../shared/errors.js';
 import { DaemonClient } from './DaemonClient.js';
 import { DaemonClientInterface, InspectedPhpVersion } from './DaemonClientInterface.js';
-import { SymfonyMenubarProxy, SymfonyMenubarProxyConstructor } from './SymfonyMenubarProxy.js';
+import { MenubarForSymfonyProxy, MenubarForSymfonyProxyConstructor } from './MenubarForSymfonyProxy.js';
 
 /** Why the extension can or cannot talk to the helper right now. */
 export type DaemonAvailability =
@@ -40,7 +40,7 @@ export interface DaemonConnectionCallbacks {
  */
 export class DaemonConnection {
     private _nameWatcherId: number | null = null;
-    private _proxy: SymfonyMenubarProxy | null = null;
+    private _proxy: MenubarForSymfonyProxy | null = null;
     private _cancellable: Gio.Cancellable | null = null;
     private _signalIds: number[] = [];
     private _propertiesSignalId: number | null = null;
@@ -106,7 +106,7 @@ export class DaemonConnection {
         const cancellable = new Gio.Cancellable();
         this._cancellable = cancellable;
 
-        SymfonyMenubarProxyConstructor(
+        MenubarForSymfonyProxyConstructor(
             Gio.DBus.session,
             BUS_NAME,
             OBJECT_PATH,
@@ -134,7 +134,7 @@ export class DaemonConnection {
         this.callbacks.onAvailabilityChanged({ kind: 'unavailable' });
     }
 
-    private _adopt(proxy: SymfonyMenubarProxy): void {
+    private _adopt(proxy: MenubarForSymfonyProxy): void {
         if (proxy.ApiVersion !== API_VERSION) {
             this.logger.error(
                 `The helper daemon speaks API version ${proxy.ApiVersion}, this extension needs ${API_VERSION}.`,
@@ -168,7 +168,7 @@ export class DaemonConnection {
             });
     }
 
-    private _connectSignals(proxy: SymfonyMenubarProxy): void {
+    private _connectSignals(proxy: MenubarForSymfonyProxy): void {
         this._signalIds.push(
             proxy.connectSignal('ServersChanged', (_proxy, _sender, args) => {
                 this._deliver('ServersChanged', () =>

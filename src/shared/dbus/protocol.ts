@@ -6,9 +6,9 @@
  * this same module, so a change here cannot leave one side behind.
  */
 
-export const BUS_NAME = 'com.github.tito10047.SymfonyMenubar';
-export const OBJECT_PATH = '/com/github/tito10047/SymfonyMenubar';
-export const INTERFACE_NAME = 'com.github.tito10047.SymfonyMenubar1';
+export const BUS_NAME = 'com.github.tito10047.MenubarForSymfony';
+export const OBJECT_PATH = '/com/github/tito10047/MenubarForSymfony';
+export const INTERFACE_NAME = 'com.github.tito10047.MenubarForSymfony1';
 
 /**
  * Incremented on every incompatible change to the interface below.
@@ -75,7 +75,7 @@ export const INTERFACE_XML = `
       <arg type="s" name="domain" direction="in"/>
     </method>
 
-    <!-- User-defined actions from ~/.config/symfony-menubar/actions.json -->
+    <!-- User-defined actions from ~/.config/menubar-for-symfony/actions.json -->
     <method name="ListCustomActions">
       <arg type="aa{sv}" name="actions" direction="out"/>
     </method>

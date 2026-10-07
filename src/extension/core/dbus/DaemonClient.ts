@@ -17,14 +17,14 @@ import { SymfonyServer } from '../../../shared/dto/SymfonyServer.js';
 import { ProxyStatus } from '../../../shared/dto/ProxyStatus.js';
 import { CustomActionDescriptor } from '../../../shared/dto/CustomActionDescriptor.js';
 import { DaemonClientInterface, InspectedPhpVersion } from './DaemonClientInterface.js';
-import { SymfonyMenubarProxy } from './SymfonyMenubarProxy.js';
+import { MenubarForSymfonyProxy } from './MenubarForSymfonyProxy.js';
 
 /**
  * Turns the generated D-Bus proxy into the typed API the rest of the extension
  * uses, unpacking every reply into the DTOs the UI already speaks.
  */
 export class DaemonClient implements DaemonClientInterface {
-    constructor(private readonly proxy: SymfonyMenubarProxy) {}
+    constructor(private readonly proxy: MenubarForSymfonyProxy) {}
 
     async listServers(): Promise<SymfonyServer[]> {
         const [payload] = await this.proxy.ListServersAsync();

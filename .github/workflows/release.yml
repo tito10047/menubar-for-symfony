@@ -55,6 +55,6 @@ jobs:
                   files: '*.zip'
                   body: |
                       This release also needs a matching **helper app**:
-                      https://github.com/tito10047/symfony-menubar-daemon/releases
+                      https://github.com/tito10047/menubar-for-symfony-daemon/releases
 
                       The extension will not work without it.

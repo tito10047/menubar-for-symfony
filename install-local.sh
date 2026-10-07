@@ -3,7 +3,7 @@
 # Builds and installs the extension for local testing.
 #
 # The extension needs the helper daemon, which lives in its own repository:
-#   https://github.com/tito10047/symfony-menubar-daemon
+#   https://github.com/tito10047/menubar-for-symfony-daemon
 #
 # If that repository is checked out next to this one, this script builds and
 # installs it too. Only the extension needs a session reload — the helper can be
@@ -17,14 +17,14 @@
 #   ./install-local.sh --yes           # reload the session without asking
 #   ./install-local.sh --no-reload     # install only, never reload
 #
-# Point HELPER_REPO at the helper checkout if it is not ../symfony-menubar-daemon.
+# Point HELPER_REPO at the helper checkout if it is not ../menubar-for-symfony-daemon.
 
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-BUS_NAME="com.github.tito10047.SymfonyMenubar"
-HELPER_REPO="${HELPER_REPO:-../symfony-menubar-daemon}"
+BUS_NAME="com.github.tito10047.MenubarForSymfony"
+HELPER_REPO="${HELPER_REPO:-../menubar-for-symfony-daemon}"
 
 HELPER_ONLY=false
 SKIP_HELPER=false
@@ -59,7 +59,7 @@ install_helper() {
     if [ ! -d "$HELPER_REPO" ]; then
         echo "The helper checkout was not found at $HELPER_REPO."
         echo "Clone it, or install a release tarball by hand:"
-        echo "  git clone https://github.com/tito10047/symfony-menubar-daemon $HELPER_REPO"
+        echo "  git clone https://github.com/tito10047/menubar-for-symfony-daemon $HELPER_REPO"
         return 1
     fi
 
@@ -75,7 +75,7 @@ install_helper() {
     if gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
             --method org.freedesktop.DBus.GetNameOwner "$BUS_NAME" >/dev/null 2>&1; then
         echo "Replacing the running helper with the new build..."
-        setsid "$HOME/.local/bin/symfony-menubar-daemon" --replace >/dev/null 2>&1 &
+        setsid "$HOME/.local/bin/menubar-for-symfony-daemon" --replace >/dev/null 2>&1 &
         sleep 1
     fi
 }

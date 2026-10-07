@@ -13,7 +13,7 @@ import { VariantDict } from '../../../shared/dbus/variant.js';
  * Each `*Async` method resolves with the reply tuple as an array, so a method
  * with a single output argument resolves with a one-element array.
  */
-export interface SymfonyMenubarProxy {
+export interface MenubarForSymfonyProxy {
     readonly ApiVersion: number;
     readonly CliAvailable: boolean;
     readonly SymfonyVersion: string;
@@ -41,7 +41,7 @@ export interface SymfonyMenubarProxy {
     /** Subscribes to one of the interface's signals. */
     connectSignal(
         signal: 'ServersChanged' | 'ProxyChanged' | 'PhpVersionsChanged',
-        handler: (proxy: SymfonyMenubarProxy, sender: string, args: unknown[]) => void,
+        handler: (proxy: MenubarForSymfonyProxy, sender: string, args: unknown[]) => void,
     ): number;
     disconnectSignal(id: number): void;
 
@@ -54,11 +54,11 @@ type ProxyConstructor = (
     bus: Gio.DBusConnection,
     name: string,
     objectPath: string,
-    onReady: (proxy: SymfonyMenubarProxy | null, error: unknown) => void,
+    onReady: (proxy: MenubarForSymfonyProxy | null, error: unknown) => void,
     cancellable: Gio.Cancellable | null,
-) => SymfonyMenubarProxy;
+) => MenubarForSymfonyProxy;
 
 // The single cast in the extension's D-Bus layer: `makeProxyWrapper()` is
 // untyped by nature, and this is the one place that knows what it produces.
-export const SymfonyMenubarProxyConstructor =
+export const MenubarForSymfonyProxyConstructor =
     Gio.DBusProxy.makeProxyWrapper(INTERFACE_XML) as unknown as ProxyConstructor;

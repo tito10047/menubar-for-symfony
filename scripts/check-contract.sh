@@ -7,13 +7,13 @@
 # must stay byte-identical — a silent divergence would break the bus at runtime
 # rather than at build time.
 #
-# Usage: npm run check-contract [path-to-symfony-menubar-daemon]
-#        defaults to ../symfony-menubar-daemon
+# Usage: npm run check-contract [path-to-menubar-for-symfony-daemon]
+#        defaults to ../menubar-for-symfony-daemon
 
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OTHER="${1:-$HERE/../symfony-menubar-daemon}"
+OTHER="${1:-$HERE/../menubar-for-symfony-daemon}"
 
 MINE="$HERE/src/shared"
 THEIRS="$OTHER/src/shared"
@@ -21,7 +21,7 @@ THEIRS="$OTHER/src/shared"
 if [ ! -d "$THEIRS" ]; then
     echo "The helper daemon checkout was not found at $OTHER." >&2
     echo "Clone it next to this repository, or pass its path:" >&2
-    echo "  git clone https://github.com/tito10047/symfony-menubar-daemon" >&2
+    echo "  git clone https://github.com/tito10047/menubar-for-symfony-daemon" >&2
     exit 1
 fi
 

@@ -34,7 +34,7 @@ const INSTALL_HINT = 'Helper app not found — install symfony-menubar-daemon, t
  * or as a state signal, which is also why `disable()` has nothing to tear down
  * beyond the indicator, the bus connection and its settings handlers.
  */
-export default class SymfonyMenubarExtension extends Extension {
+export default class MenubarForSymfonyExtension extends Extension {
     private _logger: ConsoleLogger | null = null;
     private _indicator: IndicatorType | null = null;
     private _settings: ReturnType<Extension['getSettings']> | null = null;
