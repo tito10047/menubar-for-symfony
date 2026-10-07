@@ -1,6 +1,6 @@
 {
   "name": "menubar-for-symfony",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "GNOME Shell extension for Symfony CLI",
   "main": "dist/extension.js",
   "type": "module",
