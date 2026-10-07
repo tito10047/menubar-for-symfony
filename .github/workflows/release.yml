@@ -14,8 +14,11 @@ jobs:
               with:
                   node-version: '20'
 
+            # Not `npm ci`: package-lock.json is deliberately not tracked, and
+            # every dependency here is a build-time dev dependency — the shipped
+            # bundle has no runtime dependencies at all.
             - name: Install dependencies
-              run: npm ci
+              run: npm install --no-audit --no-fund
 
             - name: Typecheck
               run: npm run typecheck
