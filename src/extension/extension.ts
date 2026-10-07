@@ -12,7 +12,8 @@ import { PhpInfo } from '../shared/dto/PhpInfo.js';
 import { ConsoleLogger } from '../shared/logging/ConsoleLogger.js';
 import { formatError } from '../shared/errors.js';
 
-import { Indicator, IndicatorType } from './ui/Indicator.js';
+import { Indicator, IndicatorType, ServerUpdateOptions } from './ui/Indicator.js';
+import { sameMenuRelevantState, sortServersByDirectory } from './ui/serverMenuState.js';
 import { openAboutDialog } from './ui/components/AboutDialog.js';
 import { openPhpVersionDialog } from './ui/dialogs/PhpVersionDialog.js';
 import { FavoritesRepository } from './core/services/FavoritesRepository.js';
@@ -200,7 +201,10 @@ export default class SymfonyMenubarExtension extends Extension {
             return;
         }
 
-        this._track('server:list', client.listServers().then(servers => this._applyServers(servers)));
+        // Driven by a click — the refresh button, the status item or a favorite
+        // toggle — so it must show up even with the menu open.
+        this._track('server:list', client.listServers()
+            .then(servers => this._applyServers(servers, { immediate: true })));
         this._track('proxy:status', client.getProxyStatus().then(status => this._applyProxyStatus(status)));
         this._track('php:list', client.listPhpVersions().then(versions => this._applyPhpVersions(versions)));
         this._track('actions:list', client.listCustomActions().then(actions => {
@@ -273,12 +277,27 @@ export default class SymfonyMenubarExtension extends Extension {
 
     // ---- Applying state --------------------------------------------------
 
-    private _applyServers(servers: SymfonyServer[]): void {
-        for (const server of servers) {
+    /**
+     * The daemon reports its whole snapshot, which includes fields the menu never
+     * shows — the domain of a project with several of them even arrives in a
+     * different order on every poll. Rebuilding the menu for that would close
+     * whatever submenu the user has open, so a report that changes nothing
+     * visible stops here.
+     */
+    private _applyServers(servers: SymfonyServer[], options: ServerUpdateOptions = {}): void {
+        const next = sortServersByDirectory(servers);
+        for (const server of next) {
             server.phpVersion = this._phpVersionFileService?.read(server.directory) ?? undefined;
         }
-        this._servers = servers;
-        this._indicator?.updateServerStatus(servers);
+
+        // A refresh the user asked for always reaches the indicator: toggling a
+        // favorite moves an item between the sections without changing any server.
+        if (options.immediate !== true && sameMenuRelevantState(this._servers, next)) {
+            return;
+        }
+
+        this._servers = next;
+        this._indicator?.updateServerStatus(next, options);
     }
 
     private _applyProxyStatus(status: ProxyStatus): void {

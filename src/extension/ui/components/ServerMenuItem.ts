@@ -1,11 +1,11 @@
 import GObject from 'gi://GObject';
-import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import { PopupImageMenuItem, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import { PopupImageMenuItem, PopupMenuSection, PopupSeparatorMenuItem } from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { ServerItemInterface } from './ServerItemInterface.js';
 import { CustomActionDescriptor } from '../../../shared/dto/CustomActionDescriptor.js';
+import { sameCustomActions } from '../serverMenuState.js';
 
 export interface ServerMenuItemParams {
     directory: string;
@@ -40,6 +40,12 @@ const ServerMenuItem = GObject.registerClass(
         declare _onSetPhpVersion: ((directory: string) => void) | undefined;
         declare _customActions: CustomActionDescriptor[];
         declare _onCustomAction: ((action: CustomActionDescriptor, directory: string) => void) | undefined;
+        declare _startItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _stopItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _browserItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _phpItem: InstanceType<typeof PopupImageMenuItem>;
+        declare _customActionsSection: InstanceType<typeof PopupMenuSection>;
+        declare _pendingCustomActions: CustomActionDescriptor[] | null;
 
         // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: ServerMenuItemParams) {
@@ -59,6 +65,7 @@ const ServerMenuItem = GObject.registerClass(
             this._customActions = params.customActions ?? [];
             this._onCustomAction = params.onCustomAction;
             this._portLabel = null;
+            this._pendingCustomActions = null;
 
             // Status dot — inserted directly before the name label.
             this._dot = new St.Icon({
@@ -70,18 +77,27 @@ const ServerMenuItem = GObject.registerClass(
             const labelIndex = this.get_children().indexOf(this.label);
             this.insert_child_at_index(this._dot, labelIndex !== -1 ? labelIndex : 1);
 
+            this._buildActions();
             this._applyDotColor(params.isRunning);
             this._setPort(params.port);
-            this._rebuildActions();
+
+            // A changed action list has to wait for the submenu to close: emptying
+            // and refilling an open submenu makes it collapse under the pointer.
+            this.menu.connect('open-state-changed', (_menu, open) => {
+                if (!open) this._flushPendingCustomActions();
+                return undefined;
+            });
         }
 
         updateStatus(isRunning: boolean): void {
             this._isRunning = isRunning;
             this._applyDotColor(isRunning);
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._rebuildActions();
-                return GLib.SOURCE_REMOVE;
-            });
+
+            // Visibility only — the submenu items are never rebuilt, so this is
+            // safe while the user has the submenu open.
+            this._startItem.visible = !isRunning;
+            this._stopItem.visible = isRunning;
+            this._browserItem.visible = isRunning;
         }
 
         updatePort(port: string): void {
@@ -90,10 +106,17 @@ const ServerMenuItem = GObject.registerClass(
 
         updatePhpVersion(version: string | null): void {
             this._phpVersion = version;
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._rebuildActions();
-                return GLib.SOURCE_REMOVE;
-            });
+            this._phpItem.label.text = this._phpLabel();
+        }
+
+        updateCustomActions(actions: CustomActionDescriptor[]): void {
+            if (sameCustomActions(this._customActions, actions)) return;
+
+            if (this.menu.isOpen) {
+                this._pendingCustomActions = actions;
+                return;
+            }
+            this._applyCustomActions(actions);
         }
 
         // ---- private helpers (GObject _ convention) ----
@@ -125,26 +148,31 @@ const ServerMenuItem = GObject.registerClass(
             this.insert_child_at_index(this._portLabel, childrenCount - 1);
         }
 
+        _phpLabel(): string {
+            return this._phpVersion ? `PHP: ${this._phpVersion}` : 'PHP: —';
+        }
+
         /**
-         * Clears and re-populates the submenu based on current running state.
-         * Called on construction and on every status change.
+         * Populates the submenu once. Everything that can change afterwards is a
+         * label or a visibility flag, because tearing the submenu down while it is
+         * open closes it in the user's face.
          */
-        _rebuildActions(): void {
-            this.menu.removeAll();
+        _buildActions(): void {
+            this._startItem = new PopupImageMenuItem('Start server', 'media-playback-start-symbolic');
+            (this._startItem as any).activate = () => this._onStart?.(this._directory);
+            this.menu.addMenuItem(this._startItem);
 
-            if (this._isRunning) {
-                const stopItem = new PopupImageMenuItem('Stop server', 'media-playback-stop-symbolic');
-                (stopItem as any).activate = () => this._onStop?.(this._directory);
-                this.menu.addMenuItem(stopItem);
+            this._stopItem = new PopupImageMenuItem('Stop server', 'media-playback-stop-symbolic');
+            (this._stopItem as any).activate = () => this._onStop?.(this._directory);
+            this.menu.addMenuItem(this._stopItem);
 
-                const browserItem = new PopupImageMenuItem('Open in browser', 'web-browser-symbolic');
-                (browserItem as any).activate = () => this._onOpenBrowser?.(this._directory);
-                this.menu.addMenuItem(browserItem);
-            } else {
-                const startItem = new PopupImageMenuItem('Start server', 'media-playback-start-symbolic');
-                (startItem as any).activate = () => this._onStart?.(this._directory);
-                this.menu.addMenuItem(startItem);
-            }
+            this._browserItem = new PopupImageMenuItem('Open in browser', 'web-browser-symbolic');
+            (this._browserItem as any).activate = () => this._onOpenBrowser?.(this._directory);
+            this.menu.addMenuItem(this._browserItem);
+
+            this._startItem.visible = !this._isRunning;
+            this._stopItem.visible = this._isRunning;
+            this._browserItem.visible = this._isRunning;
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
             this.menu.addMenuItem(new PopupImageMenuItem('Copy URL', 'edit-copy-symbolic'));
@@ -154,10 +182,9 @@ const ServerMenuItem = GObject.registerClass(
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
 
-            const phpLabel = this._phpVersion ? `PHP: ${this._phpVersion}` : 'PHP: —';
-            const phpItem = new PopupImageMenuItem(phpLabel, 'preferences-system-symbolic');
-            (phpItem as any).activate = () => this._onSetPhpVersion?.(this._directory);
-            this.menu.addMenuItem(phpItem);
+            this._phpItem = new PopupImageMenuItem(this._phpLabel(), 'preferences-system-symbolic');
+            (this._phpItem as any).activate = () => this._onSetPhpVersion?.(this._directory);
+            this.menu.addMenuItem(this._phpItem);
 
             this.menu.addMenuItem(new PopupSeparatorMenuItem());
             const favIcon = this._isFavorite ? 'starred-symbolic' : 'non-starred-symbolic';
@@ -166,13 +193,35 @@ const ServerMenuItem = GObject.registerClass(
             (favItem as any).activate = () => this._onToggleFavorite?.(this._directory);
             this.menu.addMenuItem(favItem);
 
-            if (this._customActions.length > 0) {
-                this.menu.addMenuItem(new PopupSeparatorMenuItem());
-                for (const action of this._customActions) {
-                    const actionItem = new PopupImageMenuItem(action.name, action.icon ?? 'system-run-symbolic');
-                    (actionItem as any).activate = () => this._onCustomAction?.(action, this._directory);
-                    this.menu.addMenuItem(actionItem);
-                }
+            // Kept in its own section so a changed action list never disturbs the
+            // items above it. The divider belongs to the submenu rather than to the
+            // section: GNOME hides a separator that leads a menu, and shows or
+            // hides this one for us depending on whether the section is empty.
+            this.menu.addMenuItem(new PopupSeparatorMenuItem());
+            this._customActionsSection = new PopupMenuSection();
+            this.menu.addMenuItem(this._customActionsSection);
+            this._fillCustomActionsSection();
+        }
+
+        _flushPendingCustomActions(): void {
+            const pending = this._pendingCustomActions;
+            if (pending === null) return;
+
+            this._pendingCustomActions = null;
+            this._applyCustomActions(pending);
+        }
+
+        _applyCustomActions(actions: CustomActionDescriptor[]): void {
+            this._customActions = actions;
+            this._customActionsSection.removeAll();
+            this._fillCustomActionsSection();
+        }
+
+        _fillCustomActionsSection(): void {
+            for (const action of this._customActions) {
+                const actionItem = new PopupImageMenuItem(action.name, action.icon ?? 'system-run-symbolic');
+                (actionItem as any).activate = () => this._onCustomAction?.(action, this._directory);
+                this._customActionsSection.addMenuItem(actionItem);
             }
         }
     }

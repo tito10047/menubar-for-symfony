@@ -18,6 +18,16 @@ import { ProxyStatus } from '../../shared/dto/ProxyStatus.js';
 import { CustomActionDescriptor } from '../../shared/dto/CustomActionDescriptor.js';
 import { FavoritesRepositoryInterface } from '../core/services/FavoritesRepository.js';
 import { ServerItemInterface } from './components/ServerItemInterface.js';
+import { menuStructureKey, phpSectionKey, sameCustomActions } from './serverMenuState.js';
+
+/** Options for an update that may have to wait for the menu to close. */
+export interface ServerUpdateOptions {
+    /**
+     * Rebuild even with the menu open. Set for updates the user just asked for —
+     * a favorite toggle or the refresh button — where waiting would look broken.
+     */
+    immediate?: boolean;
+}
 
 interface IndicatorParams {
     onRefresh?: () => void;
@@ -54,8 +64,13 @@ export const Indicator = GObject.registerClass(
         declare _onCustomAction: (actionId: string, directory: string) => void;
         declare _serverItemMap: Map<string, ServerItemInterface>;
         declare _customActions: CustomActionDescriptor[];
-        declare _lastServers: SymfonyServer[];
         declare _statusItem: InstanceType<typeof PopupMenuItem>;
+        /** Structure the server sections are currently built from. */
+        declare _renderedStructureKey: string;
+        /** State the PHP section is currently built from. */
+        declare _renderedPhpKey: string;
+        /** A rebuild that is waiting for the menu to close. */
+        declare _pendingServers: SymfonyServer[] | null;
 
         // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: IndicatorParams) {
@@ -64,7 +79,9 @@ export const Indicator = GObject.registerClass(
             this._favoritesRepository = params.favoritesRepository;
             this._onRefresh = params.onRefresh;
             this._customActions = [];
-            this._lastServers = [];
+            this._renderedStructureKey = '';
+            this._renderedPhpKey = '';
+            this._pendingServers = null;
             this._onStartServer = params.onStartServer;
             this._onStopServer = params.onStopServer;
             this._onOpenBrowser = params.onOpenBrowser;
@@ -123,11 +140,20 @@ export const Indicator = GObject.registerClass(
             const aboutItem = new PopupImageMenuItem('About', 'help-about-symbolic');
             aboutItem.connect('activate', () => params.onAbout?.());
             menu.addMenuItem(aboutItem);
+
+            menu.connect('open-state-changed', (_menu: unknown, open: boolean) => {
+                if (open) return;
+                this._flushPendingServers();
+            });
         }
 
         // ---- Public update API ----
 
         updatePhpStatus(versions: PhpVersion[], phpInfoMap: Map<string, PhpInfo>): void {
+            const key = phpSectionKey(versions, phpInfoMap);
+            if (key === this._renderedPhpKey) return;
+            this._renderedPhpKey = key;
+
             this._phpSection.removeAll();
             for (const version of versions) {
                 const item = new PhpVersionItem();
@@ -139,14 +165,71 @@ export const Indicator = GObject.registerClass(
             }
         }
 
-        /** Replaces the action list and re-renders, since actions arrive asynchronously. */
+        /**
+         * Hands the action list to the existing server items, since actions arrive
+         * asynchronously. The list is usually the same one again, and rebuilding
+         * the menu for it would close whatever the user has open.
+         */
         updateCustomActions(actions: CustomActionDescriptor[]): void {
+            if (sameCustomActions(this._customActions, actions)) return;
+
             this._customActions = actions;
-            this.updateServerStatus(this._lastServers);
+            for (const item of this._serverItemMap.values()) {
+                item.updateCustomActions(actions);
+            }
         }
 
-        updateServerStatus(servers: SymfonyServer[]): void {
-            this._lastServers = servers;
+        /**
+         * Applies a server report. The arrangement of the sections rarely changes,
+         * so the common case only updates the existing items: a rebuild destroys
+         * the item owning an open submenu, which looks like the menu closing by
+         * itself. A genuine structural change waits for the menu to close, unless
+         * the user asked for it.
+         */
+        updateServerStatus(servers: SymfonyServer[], options: ServerUpdateOptions = {}): void {
+            const key = menuStructureKey(
+                servers,
+                directory => this._favoritesRepository.isFavorite(directory),
+            );
+
+            if (key === this._renderedStructureKey) {
+                this._updateExistingItems(servers);
+                return;
+            }
+
+            // @ts-ignore - PopupMenu/PopupDummyMenu union type in @girs; isOpen exists at runtime
+            if (this.menu.isOpen && options.immediate !== true) {
+                this._pendingServers = servers;
+                // The items that survive the pending rebuild can still be kept
+                // current; only their arrangement has to wait.
+                this._updateExistingItems(servers);
+                return;
+            }
+
+            this._pendingServers = null;
+            this._renderServers(servers, key);
+        }
+
+        _updateExistingItems(servers: SymfonyServer[]): void {
+            for (const server of servers) {
+                this.updateServerItem(server.directory, {
+                    isRunning: server.isRunning,
+                    port: server.isRunning ? String(server.port) : '',
+                });
+                this.updateServerPhpVersion(server.directory, server.phpVersion ?? null);
+            }
+        }
+
+        _flushPendingServers(): void {
+            const pending = this._pendingServers;
+            if (pending === null) return;
+
+            this._pendingServers = null;
+            this.updateServerStatus(pending, { immediate: true });
+        }
+
+        _renderServers(servers: SymfonyServer[], structureKey: string): void {
+            this._renderedStructureKey = structureKey;
             this._serverSection.removeAll();
             this._otherServersGroup.clear();
             this._serverItemMap.clear();
@@ -243,6 +326,13 @@ export const Indicator = GObject.registerClass(
             this._statusItem.visible = !healthy;
             if (message !== null) {
                 this._statusItem.label.text = message;
+            }
+
+            // Hiding a submenu item on its own leaves it expanded for when it comes
+            // back, arrow and all.
+            if (!healthy) {
+                this._otherServersGroup.setSubmenuShown(false);
+                this._proxyItem.setSubmenuShown(false);
             }
 
             this._otherServersGroup.visible = healthy;

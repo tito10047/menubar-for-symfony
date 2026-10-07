@@ -4,6 +4,7 @@ import Clutter from 'gi://Clutter';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { ServerItemInterface } from './ServerItemInterface.js';
 import { CustomActionDescriptor } from '../../../shared/dto/CustomActionDescriptor.js';
+import { sameCustomActions } from '../serverMenuState.js';
 
 export interface ServerRowItemParams {
     directory: string;
@@ -40,6 +41,10 @@ const ServerRowItem = GObject.registerClass(
         declare _onToggleFavorite: (directory: string) => void;
         declare _onViewLogs: (directory: string) => void;
         declare _onSetPhpVersion: ((directory: string) => void) | undefined;
+        declare _onCustomAction: ((action: CustomActionDescriptor, directory: string) => void) | undefined;
+        declare _customActions: CustomActionDescriptor[];
+        declare _customButtons: InstanceType<typeof St.Button>[];
+        declare _buttonBox: InstanceType<typeof St.BoxLayout>;
 
         // @ts-ignore - GObject._init overload signature mismatch in @girs types
         _init(params: ServerRowItemParams) {
@@ -54,6 +59,9 @@ const ServerRowItem = GObject.registerClass(
             this._onToggleFavorite = params.onToggleFavorite;
             this._onViewLogs = params.onViewLogs;
             this._onSetPhpVersion = params.onSetPhpVersion;
+            this._onCustomAction = params.onCustomAction;
+            this._customActions = params.customActions ?? [];
+            this._customButtons = [];
 
             // Status dot
             this._dot = new St.Icon({
@@ -97,25 +105,20 @@ const ServerRowItem = GObject.registerClass(
                 params.isFavorite ? 'starred-symbolic' : 'non-starred-symbolic'
             );
 
-            const buttonBox = new St.BoxLayout({
+            this._buttonBox = new St.BoxLayout({
                 y_align: Clutter.ActorAlign.CENTER,
             });
-            buttonBox.add_child(this._startStopBtn);
-            buttonBox.add_child(this._browserBtn);
-            buttonBox.add_child(this._logsBtn);
-            buttonBox.add_child(this._favoriteBtn);
-
-            for (const action of (params.customActions ?? []).filter(a => a.inline)) {
-                const btn = this._makeIconButton(action.icon ?? 'system-run-symbolic');
-                btn.connect('clicked', () => params.onCustomAction?.(action, this._directory));
-                buttonBox.add_child(btn);
-            }
+            this._buttonBox.add_child(this._startStopBtn);
+            this._buttonBox.add_child(this._browserBtn);
+            this._buttonBox.add_child(this._logsBtn);
+            this._buttonBox.add_child(this._favoriteBtn);
+            this._addCustomActionButtons();
 
             this.add_child(this._dot);
             this.add_child(nameLabel);
             this.add_child(this._portLabel);
             this.add_child(this._phpVersionBtn);
-            this.add_child(buttonBox);
+            this.add_child(this._buttonBox);
 
             this._connectSignals();
         }
@@ -140,6 +143,17 @@ const ServerRowItem = GObject.registerClass(
             this._phpVersionBtn.set_label(version ?? '—');
         }
 
+        updateCustomActions(actions: CustomActionDescriptor[]): void {
+            if (sameCustomActions(this._customActions, actions)) return;
+
+            this._customActions = actions;
+            for (const button of this._customButtons) {
+                button.destroy();
+            }
+            this._customButtons = [];
+            this._addCustomActionButtons();
+        }
+
         updateFavorite(isFavorite: boolean): void {
             this._isFavorite = isFavorite;
             (this._favoriteBtn.get_child() as any)
@@ -147,6 +161,16 @@ const ServerRowItem = GObject.registerClass(
         }
 
         // ---- private helpers ----
+
+        /** Only actions flagged `inline` get a button in this compact row. */
+        _addCustomActionButtons(): void {
+            for (const action of this._customActions.filter(a => a.inline)) {
+                const button = this._makeIconButton(action.icon ?? 'system-run-symbolic');
+                button.connect('clicked', () => this._onCustomAction?.(action, this._directory));
+                this._buttonBox.add_child(button);
+                this._customButtons.push(button);
+            }
+        }
 
         _makeIconButton(iconName: string): InstanceType<typeof St.Button> {
             const icon = new St.Icon({
