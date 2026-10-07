@@ -90,6 +90,33 @@
     font-weight: bold;
 }
 
+/* ---- Status dialog (helper app / Symfony CLI missing) ---- */
+.status-dialog-steps {
+    font-family: monospace;
+    font-size: 12px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+}
+.status-dialog-footer {
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+.status-dialog-link {
+    color: #78aeed;
+    text-decoration: underline;
+    margin-top: 10px;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+.status-dialog-link:hover,
+.status-dialog-link:focus {
+    color: #a8cbf5;
+}
+
 /* ---- About dialog ---- */
 .about-repo-link {
     color: #78aeed;

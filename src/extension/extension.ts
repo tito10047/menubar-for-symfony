@@ -3,7 +3,6 @@ import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { API_VERSION } from '../shared/dbus/protocol.js';
 import { OptionsWire } from '../shared/dbus/wire.js';
 import { SymfonyServer } from '../shared/dto/SymfonyServer.js';
 import { ProxyStatus } from '../shared/dto/ProxyStatus.js';
@@ -16,6 +15,8 @@ import { Indicator, IndicatorType, ServerUpdateOptions } from './ui/Indicator.js
 import { sameMenuRelevantState, sortServersByDirectory } from './ui/serverMenuState.js';
 import { openAboutDialog } from './ui/components/AboutDialog.js';
 import { openPhpVersionDialog } from './ui/dialogs/PhpVersionDialog.js';
+import { openStatusDialog } from './ui/dialogs/StatusDialog.js';
+import { statusDialogContent, statusMessage } from './ui/statusPresentation.js';
 import { FavoritesRepository } from './core/services/FavoritesRepository.js';
 import { PhpVersionFileService } from './core/services/PhpVersionFileService.js';
 import { DaemonAvailability, DaemonConnection } from './core/dbus/DaemonConnection.js';
@@ -23,8 +24,6 @@ import { DaemonClientInterface, InspectedPhpVersion } from './core/dbus/DaemonCl
 
 /** Settings keys whose value is forwarded to the helper daemon. */
 const DAEMON_OPTION_KEYS = ['polling-interval', 'debug-logging', 'terminal-command', 'symfony-path'] as const;
-
-const INSTALL_HINT = 'Helper app not found — install symfony-menubar-daemon, then click here.';
 
 /**
  * Wires the panel menu to the helper daemon.
@@ -78,7 +77,7 @@ export default class MenubarForSymfonyExtension extends Extension {
             onStopProxy: () => this._call('proxy:stop', client => client.stopProxy()),
             onRestartProxy: () => this._restartProxy(),
             onOpenProxyBrowser: () => this._openProxyInBrowser(),
-            onStatusActivated: () => this._refresh(),
+            onStatusActivated: () => this._explainStatus(),
             onAbout: () => openAboutDialog({
                 extensionVersion: String(this.metadata['version-name'] ?? this.metadata['version'] ?? ''),
                 symfonyVersion: this._symfonyVersion,
@@ -152,19 +151,20 @@ export default class MenubarForSymfonyExtension extends Extension {
     }
 
     private _statusMessage(): string | null {
-        switch (this._availability.kind) {
-            case 'unavailable':
-                return INSTALL_HINT;
-            case 'incompatible':
-                return `Helper app speaks API version ${this._availability.daemonApiVersion}, ` +
-                    `this extension needs ${API_VERSION}. Update it, then click here.`;
-            case 'failed':
-                return `Helper app error: ${this._availability.message}. Click here to retry.`;
-            case 'available':
-                return this._cliAvailable
-                    ? null
-                    : 'Symfony CLI not detected. Install it from symfony.com/download';
+        return statusMessage(this._availability, this._cliAvailable);
+    }
+
+    /**
+     * Opens the dialog behind the status line: what is missing, how to install it
+     * and a link to where it lives. Looking for the helper again is the job of the
+     * refresh icon in the menu, which already does exactly that.
+     */
+    private _explainStatus(): void {
+        const content = statusDialogContent(this._availability, this._cliAvailable);
+        if (content === null) {
+            return;
         }
+        openStatusDialog(content);
     }
 
     // ---- Settings --------------------------------------------------------

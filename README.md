@@ -19,12 +19,21 @@ Access, start, and stop your local Symfony servers from the menu bar. Open them 
 
 - GNOME 49.0 or later
 - [Symfony CLI](https://symfony.com/download) installed and available in your `PATH`
-- The **helper app** (see below) — it ships separately from the extension
+- The helper app **[`menubar-for-symfony-daemon`](https://github.com/tito10047/menubar-for-symfony-daemon)**,
+  installed separately — see [Installation](#1-the-helper-app)
+
+The helper app is not optional: the extension never runs the Symfony CLI itself,
+so without it the menu shows *"Helper app not found — click here to learn how to
+install it."* and nothing else. Clicking that line opens a dialog with the install
+commands and a link to the helper's releases. Installing it needs no root
+privileges and brings no new runtime — it is plain JavaScript run by
+`/usr/bin/gjs`, which is part of GNOME Shell. Once installed, press the refresh
+icon in the menu; no logout is needed.
 
 ## Architecture in one paragraph
 
 The extension itself never starts a process. All Symfony CLI calls happen in a
-small helper app, `symfony-menubar-daemon`, which the extension talks to over
+small helper app, `menubar-for-symfony-daemon`, which the extension talks to over
 D-Bus. This split was requested by the GNOME extension reviewers: it keeps the
 command logic out of the gnome-shell process and out of the package published on
 extensions.gnome.org.
@@ -79,14 +88,16 @@ cd menubar-for-symfony
 npm install
 
 # The helper lives in its own repository; clone it alongside
-git clone https://github.com/tito10047/symfony-menubar-daemon ../symfony-menubar-daemon
+git clone https://github.com/tito10047/menubar-for-symfony-daemon ../menubar-for-symfony-daemon
 
 # Builds and installs both, then asks before reloading your session
 ./install-local.sh
 ```
 
-If the menu says the helper app was not found, install it as described above and
-then click that message — the extension looks again without needing a restart.
+If the menu says the helper app was not found, click that line: a dialog explains
+what the helper is, how to install it and where to download it. Install it as
+described above, then press the refresh icon in the menu — the extension looks
+again without needing a restart.
 
 ### Settings
 
